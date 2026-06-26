@@ -1,0 +1,17 @@
+# Add or remove counties here. Re-run the pipeline after any change.
+# state: two-letter lowercase LODES state code
+# fips:  5-digit county FIPS string
+
+counties:
+  - { name: "Salt Lake",  state: "ut", fips: "49035" }
+  - { name: "Utah",       state: "ut", fips: "49049" }
+  - { name: "Davis",      state: "ut", fips: "49011" }
+  - { name: "Weber",      state: "ut", fips: "49057" }
+  - { name: "Tooele",     state: "ut", fips: "49045" }
+  - { name: "Summit",     state: "ut", fips: "49043" }
+  - { name: "Wasatch",    state: "ut", fips: "49051" }
+  - { name: "Morgan",     state: "ut", fips: "49029" }
+
+  # To add cross-state border counties, append entries like:
+  # - { name: "Uinta (WY)", state: "wy", fips: "56041" }
+  # - { name: "Franklin (ID)", state: "id", fips: "16041" }

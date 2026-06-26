@@ -1,0 +1,2 @@
+# Git LFS tracking for large Parquet files
+*.parquet filter=lfs diff=lfs merge=lfs -text

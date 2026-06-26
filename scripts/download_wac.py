@@ -42,6 +42,6 @@ for state in ACTIVE_STATES:
         df = df[df["w_geocode"].str[:5].isin(ACTIVE_SET)]
 
         df.to_csv(out_path, index=False, compression="gzip")
-        print(f"  {state} {year}: {len(df):,} work blocks → {out_path.name}")
+        print(f"  {state} {year}: {len(df):,} work blocks -> {out_path.name}")
 
 print("Done.")

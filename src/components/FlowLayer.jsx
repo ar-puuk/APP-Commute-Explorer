@@ -2,7 +2,22 @@ import { useEffect, useRef } from 'react';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { FlowmapLayer } from '@flowmap.gl/layers';
 
-export default function FlowLayer({ map, points, matrixCells }) {
+const SHARED_PROPS = {
+  flowLinesRenderingMode: 'straight',
+  clusteringEnabled:      false,
+  locationTotalsEnabled:  true,
+  locationLabelsEnabled:  false,
+  adaptiveScalesEnabled:  true,
+  fadeEnabled:            true,
+  flowLineThicknessScale: 1.5,
+  pickable:               true,
+};
+
+export default function FlowLayer({
+  map, appMode,
+  points, matrixCells,
+  overviewLocations, overviewFlows,
+}) {
   const overlayRef = useRef(null);
   const tooltipRef = useRef(null);
 
@@ -32,8 +47,68 @@ export default function FlowLayer({ map, points, matrixCells }) {
   }, [map]);
 
   useEffect(() => {
-    if (!overlayRef.current || points.length < 2) {
-      overlayRef.current?.setProps({ layers: [] });
+    if (!overlayRef.current) return;
+
+    const showTooltip = (info, html) => {
+      if (!tooltipRef.current) return;
+      const rect = map.getContainer().getBoundingClientRect();
+      const el = tooltipRef.current;
+      el.innerHTML = html;
+      el.style.display = 'block';
+      el.style.left = `${rect.left + info.x + 12}px`;
+      el.style.top  = `${rect.top  + info.y - 12}px`;
+    };
+    const hideTooltip = () => {
+      if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+    };
+
+    // ── Overview mode: full-region clustered view ──────────────────────────────
+    if (appMode === 'overview') {
+      if (!overviewLocations?.length || !overviewFlows?.length) {
+        overlayRef.current.setProps({ layers: [] });
+        return;
+      }
+
+      const layer = new FlowmapLayer({
+        id: 'commute-flows-overview',
+        data: { locations: overviewLocations, flows: overviewFlows },
+        getLocationId:    loc  => loc.id,
+        getLocationLat:   loc  => loc.lat,
+        getLocationLon:   loc  => loc.lon,
+        getLocationName:  loc  => loc.name,
+        getFlowOriginId:  flow => flow.origin,
+        getFlowDestId:    flow => flow.dest,
+        getFlowMagnitude: flow => flow.count,
+        ...SHARED_PROPS,
+        clusteringEnabled: true,
+        maxTopFlowsDisplayNum: 150,
+        onHover: (info) => {
+          const obj = info?.object;
+          if (!obj || !info.picked) { hideTooltip(); return; }
+          if (obj.type === 'flow') {
+            const o = obj.origin?.name ?? '?';
+            const d = obj.dest?.name   ?? '?';
+            showTooltip(info, `
+              <div style="font-weight:700">${o} → ${d}</div>
+              <div style="margin-top:4px">Commuters: ${obj.count?.toLocaleString() ?? '?'}</div>
+            `);
+          } else if (obj.type === 'location') {
+            showTooltip(info, `
+              <div style="font-weight:700">${obj.name ?? '?'}</div>
+            `);
+          } else {
+            hideTooltip();
+          }
+        },
+      });
+
+      overlayRef.current.setProps({ layers: [layer] });
+      return;
+    }
+
+    // ── Select mode: user-defined points ──────────────────────────────────────
+    if (points.length < 2) {
+      overlayRef.current.setProps({ layers: [] });
       return;
     }
 
@@ -50,20 +125,9 @@ export default function FlowLayer({ map, points, matrixCells }) {
     }
 
     const pctStr = (n, total) => total ? ` ${Math.round(n / total * 100)}%` : '';
-    const showTooltip = (info, html) => {
-      if (!tooltipRef.current) return;
-      const el = tooltipRef.current;
-      el.innerHTML = html;
-      el.style.display = 'block';
-      el.style.left = `${info.x + 12}px`;
-      el.style.top  = `${info.y - 12}px`;
-    };
-    const hideTooltip = () => {
-      if (tooltipRef.current) tooltipRef.current.style.display = 'none';
-    };
 
     const layer = new FlowmapLayer({
-      id: 'commute-flows',
+      id: 'commute-flows-select',
       data: {
         locations: Array.from(locMap.values()),
         flows: flowData,
@@ -75,29 +139,18 @@ export default function FlowLayer({ map, points, matrixCells }) {
       getFlowOriginId:  flow => flow.origin,
       getFlowDestId:    flow => flow.dest,
       getFlowMagnitude: flow => flow.count,
-      flowLinesRenderingMode: 'animated-straight',
-      colorScheme: 'GnBu',
-      clusteringEnabled: false,
-      locationTotalsEnabled: true,
-      locationLabelsEnabled: false,
-      fadeEnabled: true,
-      adaptiveScalesEnabled: true,
-      flowLineThicknessScale: 1.5,
-      pickable: true,
+      ...SHARED_PROPS,
       onHover: (info) => {
         const obj = info?.object;
         if (!obj || !info.picked) { hideTooltip(); return; }
-
-        const rect = map.getContainer().getBoundingClientRect();
-        const absInfo = { x: rect.left + info.x, y: rect.top + info.y };
 
         if (obj.type === 'flow') {
           const { cell } = obj;
           if (!cell) { hideTooltip(); return; }
           const S = cell.S000;
           const oName = points.find(p => p.id === cell.originPointId)?.name ?? '?';
-          const dName = points.find(p => p.id === cell.destPointId)?.name ?? '?';
-          showTooltip(absInfo, `
+          const dName = points.find(p => p.id === cell.destPointId)?.name   ?? '?';
+          showTooltip(info, `
             <div style="font-weight:700;margin-bottom:6px">${oName} → ${dName}</div>
             <div style="border-top:1px solid #e5e7eb;padding-top:6px">
               <div style="font-weight:700">Total commuters: ${S.toLocaleString()}</div>
@@ -107,8 +160,8 @@ export default function FlowLayer({ map, points, matrixCells }) {
             </div>
             <div style="border-top:1px solid #e5e7eb;padding-top:6px;margin-top:6px">
               <div>Goods-producing (SI01): ${cell.SI01.toLocaleString()}${pctStr(cell.SI01, S)}</div>
-              <div>Trade/transport (SI02): ${cell.SI02.toLocaleString()}${pctStr(cell.SI02, S)}</div>
-              <div>Other services (SI03): ${cell.SI03.toLocaleString()}${pctStr(cell.SI03, S)}</div>
+              <div>Trade/transport (SI02):  ${cell.SI02.toLocaleString()}${pctStr(cell.SI02, S)}</div>
+              <div>Other services (SI03):   ${cell.SI03.toLocaleString()}${pctStr(cell.SI03, S)}</div>
               <div style="font-size:10px;color:#9ca3af;margin-top:4px">ⓘ Industry reflects job type at destination</div>
             </div>
           `);
@@ -117,7 +170,7 @@ export default function FlowLayer({ map, points, matrixCells }) {
           if (!p) { hideTooltip(); return; }
           const inbound  = [...matrixCells.values()].filter(c => c.destPointId   === p.id).reduce((s, c) => s + c.S000, 0);
           const outbound = [...matrixCells.values()].filter(c => c.originPointId === p.id).reduce((s, c) => s + c.S000, 0);
-          showTooltip(absInfo, `
+          showTooltip(info, `
             <div style="font-weight:700">${p.name} — ${p.countyName}</div>
             <div>Outbound (as origin): ${outbound.toLocaleString()}</div>
             <div>Inbound (as dest): ${inbound.toLocaleString()}</div>
@@ -129,7 +182,7 @@ export default function FlowLayer({ map, points, matrixCells }) {
     });
 
     overlayRef.current.setProps({ layers: [layer] });
-  }, [map, points, matrixCells]);
+  }, [map, appMode, points, matrixCells, overviewLocations, overviewFlows]);
 
   return null;
 }

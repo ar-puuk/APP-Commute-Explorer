@@ -5,7 +5,8 @@ let hexMetaMap = null;
 export async function loadHexMeta() {
   if (hexMetaMap) return hexMetaMap;
 
-  const res = await fetch('./data/hex_meta.parquet');
+  const base = `${window.location.origin}${import.meta.env.BASE_URL}`;
+  const res = await fetch(`${base}data/hex_meta.parquet`);
   if (!res.ok) throw new Error(`Failed to load hex_meta.parquet: ${res.status}`);
 
   const buf = await res.arrayBuffer();
@@ -26,4 +27,8 @@ export async function loadHexMeta() {
 
 export function getHexMeta(h3Id) {
   return hexMetaMap?.get(h3Id) ?? null;
+}
+
+export function getAllHexMeta() {
+  return hexMetaMap;
 }

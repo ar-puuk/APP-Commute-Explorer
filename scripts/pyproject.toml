@@ -1,5 +1,6 @@
 [project]
 name = "commuter-flow-preprocess"
+version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "pandas>=2.0",
@@ -8,4 +9,6 @@ dependencies = [
     "pyyaml>=6.0",
     "requests>=2.31",
     "tqdm>=4.66",
+    "geopandas>=0.14",
+    "shapely>=2.0",
 ]

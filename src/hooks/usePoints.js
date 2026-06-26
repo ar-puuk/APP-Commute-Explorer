@@ -80,6 +80,8 @@ export function usePoints(kRing) {
     });
   }, []);
 
+  const clearPoints = useCallback(() => setPoints([]), []);
+
   const recomputeAllClusters = useCallback((newK) => {
     setPoints(prev =>
       prev.map(p => ({
@@ -104,5 +106,6 @@ export function usePoints(kRing) {
     reorderPoint,
     recomputeAllClusters,
     isNameDuplicate,
+    clearPoints,
   };
 }

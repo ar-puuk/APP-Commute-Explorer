@@ -48,6 +48,7 @@ uv run download_wac.py         # download + filter WAC industry CSVs
 uv run download_crosswalk.py   # download xwalk, assign H3 IDs → .cache/block_h3_lookup.parquet
 uv run build_hex_meta.py       # → public/data/hex_meta.parquet
 uv run build_od_parquet.py     # → public/data/od_{2002..2023}.parquet
+uv run build_counties_geojson.py  # → public/data/counties.geojson (map boundary overlay)
 ```
 
 Pipeline outputs go to `public/data/`. Large files (≥50 MB) must be committed via Git LFS.

@@ -18,8 +18,7 @@ hex_meta = pd.read_parquet(OUTPUT_DIR / "hex_meta.parquet",
                            columns=["h3_id", "lon", "lat"])
 hex_meta = hex_meta.set_index("h3_id")
 
-COUNT_COLS = ["S000", "SA01", "SA02", "SA03"]
-SI_COLS    = ["SI01", "SI02", "SI03"]
+ALL_COLS = ["S000", "SA01", "SA02", "SA03", "SI01", "SI02", "SI03"]
 
 for year in tqdm(YEARS, desc="Building OD Parquet"):
     out_path = OUTPUT_DIR / f"od_{year}.parquet"
@@ -47,33 +46,13 @@ for year in tqdm(YEARS, desc="Building OD Parquet"):
     od["w_h3"] = od["w_geocode"].map(lookup)
     od = od.dropna(subset=["h_h3", "w_h3"])
 
-    for col in COUNT_COLS:
+    # SI01/SI02/SI03 are already in the OD file; no WAC join needed
+    for col in ALL_COLS:
         od[col] = pd.to_numeric(od[col], errors="coerce").fillna(0).astype(int)
-
-    # Load WAC and join SI columns
-    wac_parts = []
-    for state in ACTIVE_STATES:
-        wac_file = CACHE_DIR / "wac" / f"{state}_wac_{year}.csv.gz"
-        if wac_file.exists():
-            wac_parts.append(pd.read_csv(wac_file, dtype=str))
-    if wac_parts:
-        wac = pd.concat(wac_parts, ignore_index=True)
-        for col in SI_COLS:
-            if col in wac.columns:
-                wac[col] = pd.to_numeric(wac[col], errors="coerce").fillna(0).astype(int)
-            else:
-                wac[col] = 0
-        od = od.merge(wac[["w_geocode"] + SI_COLS], on="w_geocode", how="left")
-    else:
-        for col in SI_COLS:
-            od[col] = 0
-
-    for col in SI_COLS:
-        od[col] = od[col].fillna(0).astype(int)
 
     # Aggregate to hex-pair level
     agg = (
-        od.groupby(["h_h3", "w_h3"], as_index=False)[COUNT_COLS + SI_COLS]
+        od.groupby(["h_h3", "w_h3"], as_index=False)[ALL_COLS]
         .sum()
     )
     agg = agg[agg["S000"] > 0]
@@ -89,7 +68,7 @@ for year in tqdm(YEARS, desc="Building OD Parquet"):
     agg = agg.dropna(subset=["h_lon", "h_lat", "w_lon", "w_lat"])
 
     # Cast types
-    for col in COUNT_COLS + SI_COLS:
+    for col in ALL_COLS:
         agg[col] = agg[col].astype("int32")
 
     table = pa.Table.from_pandas(agg, preserve_index=False)

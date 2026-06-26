@@ -53,6 +53,6 @@ for state in ACTIVE_STATES:
         filtered = _filter(combined)
 
         filtered.to_csv(out_path, index=False, compression="gzip")
-        print(f"  {state} {year}: {len(filtered):,} rows → {out_path.name}")
+        print(f"  {state} {year}: {len(filtered):,} rows -> {out_path.name}")
 
 print("Done.")

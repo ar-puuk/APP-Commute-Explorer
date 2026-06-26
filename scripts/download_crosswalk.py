@@ -18,20 +18,20 @@ for state in ACTIVE_STATES:
     r.raise_for_status()
 
     df = pd.read_csv(io.BytesIO(gzip.decompress(r.content)), dtype=str,
-                     usecols=["tabblk2020", "blklon", "blklat", "cty"])
+                     usecols=["tabblk2020", "blklondd", "blklatdd", "cty"])
 
     df = df[df["cty"].isin(ACTIVE_SET)].copy()
-    df["blklon"] = df["blklon"].astype(float)
-    df["blklat"] = df["blklat"].astype(float)
+    df["blklondd"] = df["blklondd"].astype(float)
+    df["blklatdd"] = df["blklatdd"].astype(float)
 
     df["h3_id"] = df.apply(
-        lambda row: h3.latlng_to_cell(row["blklat"], row["blklon"], H3_RESOLUTION),
+        lambda row: h3.latlng_to_cell(row["blklatdd"], row["blklondd"], H3_RESOLUTION),
         axis=1,
     )
     df["state_fips"] = df["cty"].str[:2]
     df["county_fips"] = df["cty"]
 
-    df = df.rename(columns={"tabblk2020": "geoid"})
+    df = df.rename(columns={"tabblk2020": "geoid", "blklondd": "blklon", "blklatdd": "blklat"})
     df = df[["geoid", "h3_id", "blklon", "blklat", "state_fips", "county_fips"]]
     all_blocks.append(df)
     print(f"  {state}: {len(df):,} blocks in active counties")
@@ -39,4 +39,4 @@ for state in ACTIVE_STATES:
 combined = pd.concat(all_blocks, ignore_index=True)
 out_path = CACHE_DIR / "block_h3_lookup.parquet"
 combined.to_parquet(out_path, index=False)
-print(f"\nSaved {len(combined):,} blocks → {out_path}")
+print(f"\nSaved {len(combined):,} blocks -> {out_path}")

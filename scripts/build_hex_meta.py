@@ -40,4 +40,4 @@ table = pa.Table.from_pandas(meta, preserve_index=False)
 pq.write_table(table, out_path, compression="snappy")
 
 size_mb = out_path.stat().st_size / 1_048_576
-print(f"hex_meta.parquet: {len(meta):,} H3 cells, {size_mb:.1f} MB → {out_path}")
+print(f"hex_meta.parquet: {len(meta):,} H3 cells, {size_mb:.1f} MB -> {out_path}")

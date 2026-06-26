@@ -22,13 +22,34 @@ export async function initDB() {
   return initPromise;
 }
 
+function dataUrl(year) {
+  // DuckDB-WASM resolves paths against the blob worker URL, not the app base.
+  // Must use a full absolute URL so the browser fetch inside the worker succeeds.
+  const base = `${window.location.origin}${import.meta.env.BASE_URL}`;
+  return `${base}data/od_${year}.parquet`;
+}
+
 export async function loadYear(year) {
   if (!conn) throw new Error('DuckDB not initialised — call initDB() first');
   if (year === currentYear) return;
   await conn.query(
-    `CREATE OR REPLACE VIEW od AS SELECT * FROM parquet_scan('./data/od_${year}.parquet')`
+    `CREATE OR REPLACE VIEW od AS SELECT * FROM parquet_scan('${dataUrl(year)}')`
   );
   currentYear = year;
+}
+
+export async function queryAllOD(minFlow = 3) {
+  if (!conn) throw new Error('DuckDB not initialised');
+  const result = await conn.query(`
+    SELECT h_h3, w_h3, S000
+    FROM od
+    WHERE S000 >= ${minFlow} AND h_h3 != w_h3
+  `);
+  return result.toArray().map(row => ({
+    h_h3: row.h_h3,
+    w_h3: row.w_h3,
+    S000: Number(row.S000),
+  }));
 }
 
 export async function queryOD(allHexIds) {

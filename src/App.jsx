@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { usePoints } from './hooks/usePoints.js';
 import { useFlows } from './hooks/useFlows.js';
 import { initDB, loadYear, queryAllOD } from './hooks/useDuckDB.js';
-import { loadHexMeta, getAllHexMeta } from './utils/countyConfig.js';
+import { loadHexMeta } from './utils/countyConfig.js';
 import MapView from './components/MapView.jsx';
 import ODMatrix from './components/ODMatrix.jsx';
 import PointList from './components/PointList.jsx';
@@ -53,37 +53,42 @@ export default function App() {
       .catch(() => setMetaLoaded(true));
   }, []);
 
-  // Load full-region overview data whenever DB + hex meta are ready or year changes
+  // Load full-region overview data whenever DB is ready or year changes.
+  // Coordinates come from the parquet itself — no hexMetaMap dependency.
   useEffect(() => {
-    if (!dbReady || !metaLoaded) return;
+    if (!dbReady) return;
     let cancelled = false;
     setOverviewLoading(true);
 
     loadYear(year)
-      .then(() => {
-        console.log('[Overview] year loaded, querying all OD flows…');
-        return queryAllOD(3);
-      })
+      .then(() => queryAllOD(3))
       .then(rows => {
         if (cancelled) return;
-        console.log(`[Overview] ${rows.length} OD flows loaded`);
-        const hexMetaMap = getAllHexMeta();
-        if (!hexMetaMap) { console.error('[Overview] hexMetaMap is null — was loadHexMeta() awaited?'); return; }
 
-        const activeHexes = new Set(rows.flatMap(r => [r.h_h3, r.w_h3]));
-        const locs = [...hexMetaMap.entries()]
-          .filter(([id]) => activeHexes.has(id))
-          .map(([id, m]) => ({ id, lat: m.lat, lon: m.lon, name: m.county_name }));
+        // Build grid-cell locations from the aggregated rows
+        const gridCells = new Map();
+        for (const r of rows) {
+          const hId = `${r.h_lat_g}|${r.h_lon_g}`;
+          const wId = `${r.w_lat_g}|${r.w_lon_g}`;
+          if (!gridCells.has(hId)) gridCells.set(hId, { lat: r.h_lat_g, lon: r.h_lon_g });
+          if (!gridCells.has(wId)) gridCells.set(wId, { lat: r.w_lat_g, lon: r.w_lon_g });
+        }
+        const locs  = [...gridCells.entries()].map(([id, c]) => ({ id, lat: c.lat, lon: c.lon, name: '' }));
+        const flows = rows.map(r => ({
+          origin: `${r.h_lat_g}|${r.h_lon_g}`,
+          dest:   `${r.w_lat_g}|${r.w_lon_g}`,
+          count:  r.total,
+        }));
 
-        console.log(`[Overview] ${locs.length} locations, ${rows.length} flows → rendering`);
+        console.log(`[Overview] ${locs.length} grid cells, ${flows.length} flows`);
         setOverviewLocations(locs);
-        setOverviewFlows(rows.map(r => ({ origin: r.h_h3, dest: r.w_h3, count: r.S000 })));
+        setOverviewFlows(flows);
       })
       .catch(err => console.error('[Overview] failed to load:', err))
       .finally(() => { if (!cancelled) setOverviewLoading(false); });
 
     return () => { cancelled = true; };
-  }, [dbReady, metaLoaded, year]);
+  }, [dbReady, year]);
 
   const handleKRingChange = (newK) => {
     setKRing(newK);

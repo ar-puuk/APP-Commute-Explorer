@@ -38,17 +38,29 @@ export async function loadYear(year) {
   currentYear = year;
 }
 
-export async function queryAllOD(minFlow = 3) {
+// Aggregate hex-level flows to a ~10 km grid for the overview flowmap.
+// Snapping res-9 centroids to 0.1° cells (~8–11 km) reduces tens of thousands
+// of locations to ~150–300 grid cells, which FlowmapLayer clusters efficiently.
+export async function queryAllOD(minGridFlow = 25) {
   if (!conn) throw new Error('DuckDB not initialised');
   const result = await conn.query(`
-    SELECT h_h3, w_h3, S000
+    SELECT
+      ROUND(h_lat * 10) / 10.0 AS h_lat_g,
+      ROUND(h_lon * 10) / 10.0 AS h_lon_g,
+      ROUND(w_lat * 10) / 10.0 AS w_lat_g,
+      ROUND(w_lon * 10) / 10.0 AS w_lon_g,
+      SUM(S000)                 AS total
     FROM od
-    WHERE S000 >= ${minFlow} AND h_h3 != w_h3
+    GROUP BY 1, 2, 3, 4
+    HAVING total >= ${minGridFlow}
+       AND (h_lat_g != w_lat_g OR h_lon_g != w_lon_g)
   `);
   return result.toArray().map(row => ({
-    h_h3: row.h_h3,
-    w_h3: row.w_h3,
-    S000: Number(row.S000),
+    h_lat_g: Number(row.h_lat_g),
+    h_lon_g: Number(row.h_lon_g),
+    w_lat_g: Number(row.w_lat_g),
+    w_lon_g: Number(row.w_lon_g),
+    total:   Number(row.total),
   }));
 }
 

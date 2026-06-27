@@ -9,6 +9,8 @@ const SHARED_PROPS = {
   locationLabelsEnabled:  false,
   adaptiveScalesEnabled:  true,
   fadeEnabled:            true,
+  darkMode:               false,
+  colorScheme:            'GnBu',
   flowLineThicknessScale: 1.5,
   pickable:               true,
 };

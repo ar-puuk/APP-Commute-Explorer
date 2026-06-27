@@ -1,0 +1,224 @@
+/* ─── Shared tooltip system ──────────────────────────────────────────────── */
+
+.flow-tooltip {
+  position: fixed;
+  z-index: 9999;
+  width: 260px;
+  padding: 0;
+  pointer-events: none;
+
+  background: var(--color-surface-elevated);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-tooltip);
+  overflow: hidden;
+
+  font-family: 'Open Sans Variable', 'Open Sans', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+/* Small variant for hex-cluster hover */
+.flow-tooltip--sm {
+  width: 180px;
+}
+
+/* 3px left accent bar */
+.flow-tooltip__accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-brand-600);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.flow-tooltip__accent--point {
+  /* color set inline via style prop to match point color */
+}
+
+/* Inner content padding */
+.flow-tooltip__body {
+  padding: 12px 14px 12px 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Origin → Destination headline row */
+.flow-tooltip__route {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.flow-tooltip__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.flow-tooltip__swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.flow-tooltip__arrow {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* Section divider */
+.flow-tooltip__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 8px 0;
+}
+
+/* Section label: WAGES, INDUSTRY, etc. */
+.flow-tooltip__section {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+/* Large stat number */
+.flow-tooltip__number {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+
+/* Data row: label + bar + count + pct */
+.flow-tooltip__row {
+  display: grid;
+  grid-template-columns: 90px 80px auto auto;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.flow-tooltip__row-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mini bar track */
+.flow-tooltip__bar-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.flow-tooltip__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--color-brand-600);
+  transition: width 0.2s ease;
+}
+
+.flow-tooltip__bar-fill--industry {
+  background: #76b7b2;
+}
+
+.flow-tooltip__row-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.flow-tooltip__row-pct {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: right;
+  white-space: nowrap;
+  min-width: 32px;
+}
+
+/* Net flow signed value */
+.flow-tooltip__net-positive {
+  font-weight: 700;
+  color: var(--color-success);
+}
+.flow-tooltip__net-negative {
+  font-weight: 700;
+  color: var(--color-error);
+}
+
+/* Caption footnote */
+.flow-tooltip__caption {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+/* Point name + county (location tooltip) */
+.flow-tooltip__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.flow-tooltip__meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+/* ── Dock close button (separate DOM element, outside tooltip) ────────────── */
+.tt-dock-close {
+  position: fixed;
+  z-index: 10001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.tt-dock-close:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-error);
+}
+
+/* Docked badge shown at the top of a docked tooltip */
+.tt-dock-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-brand-600);
+  padding: 4px 17px 0;
+  opacity: 0.8;
+}

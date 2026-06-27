@@ -1,0 +1,215 @@
+/* ─── Light theme (default) ──────────────────────────────────────────────── */
+:root {
+  /* Brand */
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-50:  #eff6ff;
+
+  /* Surfaces */
+  --color-surface:          #ffffff;
+  --color-surface-subtle:   #f8fafc;
+  --color-surface-raised:   #f1f5f9;
+  --color-surface-elevated: #ffffff;
+
+  /* Borders */
+  --color-border:        #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* Text */
+  --color-text-primary:   #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted:     #94a3b8;
+  --color-text-disabled:  #cbd5e1;
+
+  /* Status */
+  --color-warning:        #f59e0b;
+  --color-warning-bg:     #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-error:          #ef4444;
+  --color-success:        #10b981;
+
+  /* Spacing — 4-pt grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Radii */
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-pill: 9999px;
+
+  /* Elevation */
+  --shadow-sm:      0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.10);
+  --shadow-md:      0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg:      0 10px 15px rgba(0,0,0,.08), 0 4px 6px rgba(0,0,0,.05);
+  --shadow-tooltip: 0 8px 24px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.08);
+
+  /* Layout */
+  --header-height: 52px;
+  --sidebar-width: 280px;
+
+  /* Frosted-glass overlay (overview card, legend) */
+  --glass-bg: rgba(255, 255, 255, 0.88);
+}
+
+/* ─── Dark theme ─────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  /* Surfaces — Slate scale */
+  --color-surface:          #0f172a;
+  --color-surface-subtle:   #1e293b;
+  --color-surface-raised:   #334155;
+  --color-surface-elevated: #1e293b;
+
+  /* Borders */
+  --color-border:        #334155;
+  --color-border-strong: #475569;
+
+  /* Text */
+  --color-text-primary:   #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted:     #64748b;
+  --color-text-disabled:  #334155;
+
+  /* Status */
+  --color-warning-bg:     #1c1a09;
+  --color-warning-border: #78350f;
+
+  /* Elevation — heavier on dark background */
+  --shadow-sm:      0 1px 2px rgba(0,0,0,.4),  0 1px 3px rgba(0,0,0,.3);
+  --shadow-md:      0 4px 6px rgba(0,0,0,.35), 0 2px 4px rgba(0,0,0,.25);
+  --shadow-tooltip: 0 8px 24px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
+
+  --glass-bg: rgba(15, 23, 42, 0.88);
+}
+
+/* ─── Global resets ──────────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  /* Open Sans for body/labels: superior legibility at 11-13px */
+  font-family: 'Open Sans Variable', 'Open Sans', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Inter for headings and display text: sharp, geometric */
+h1, h2, h3, h4, h5, h6,
+.font-heading {
+  font-family: 'Inter Variable', Inter, system-ui, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* Tabular numbers everywhere numbers are displayed in columns */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Hide native spin buttons on number inputs globally */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ─── Shared utility classes ─────────────────────────────────────────────── */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-3) 0;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  background: var(--color-brand-600);
+  color: #fff;
+  transition: background 0.12s ease;
+}
+.btn-primary:hover  { background: var(--color-brand-700); }
+.btn-primary:focus-visible { outline: 2px solid var(--color-brand-600); outline-offset: 2px; }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.btn-secondary:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.btn-secondary:focus-visible { outline: 2px solid var(--color-brand-600); outline-offset: 2px; }
+.btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.btn-icon:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.btn-icon:focus-visible { outline: 2px solid var(--color-brand-600); outline-offset: 2px; }
+.btn-icon:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.styled-select {
+  appearance: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 24px 4px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+.styled-select:hover  { border-color: var(--color-border-strong); }
+.styled-select:focus  { outline: none; border: 2px solid var(--color-brand-600); padding: 3px 23px 3px 7px; }

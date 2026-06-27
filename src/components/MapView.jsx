@@ -4,8 +4,11 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { buildBasemapStyle, addHillshadeToMap } from '../utils/agrcStyle.js';
 import { latlngToCell, getCluster } from '../utils/h3Utils.js';
 import { getHexMeta } from '../utils/countyConfig.js';
-import HexLayer from './HexLayer.jsx';
-import FlowLayer from './FlowLayer.jsx';
+import { useTheme } from '../contexts/ThemeContext.jsx';
+import HexLayer   from './HexLayer.jsx';
+import FlowLayer  from './FlowLayer.jsx';
+import FlowLegend from './FlowLegend.jsx';
+import { HexTooltip } from './FlowTooltip.jsx';
 
 export default function MapView({
   appMode, points, kRing, activeView,
@@ -22,21 +25,60 @@ export default function MapView({
   const [hoveredHex, setHoveredHex] = useState(null);
   const [hoveredPos,  setHoveredPos]  = useState({ x: 0, y: 0 });
 
+  const { resolvedTheme } = useTheme();
+  const resolvedThemeRef  = useRef(resolvedTheme);
+  useEffect(() => { resolvedThemeRef.current = resolvedTheme; }, [resolvedTheme]);
+
+  // Overview uses overviewFlows directly (already has count); select uses matrixCells
+  const legendFlows = appMode === 'overview'
+    ? (overviewFlows ?? [])
+    : [...(matrixCells?.values() ?? [])].map(c => ({ count: c.S000 }));
+
+  /* ── addCustomLayers: county overlay + any post-style-load logic ── */
+  function addCustomLayers(m) {
+    const base = `${window.location.origin}${import.meta.env.BASE_URL}`;
+    fetch(`${base}data/counties.geojson`)
+      .then(r => r.json())
+      .then(geojson => {
+        if (!m.getSource('county-overlay')) {
+          m.addSource('county-overlay', { type: 'geojson', data: geojson });
+        }
+        if (!m.getLayer('county-mask')) {
+          m.addLayer({
+            id: 'county-mask',
+            type: 'fill',
+            source: 'county-overlay',
+            filter: ['==', ['get', 'kind'], 'mask'],
+            paint: { 'fill-color': '#1e293b', 'fill-opacity': 0.12 },
+          });
+        }
+        if (!m.getLayer('county-boundary')) {
+          m.addLayer({
+            id: 'county-boundary',
+            type: 'line',
+            source: 'county-overlay',
+            filter: ['==', ['get', 'kind'], 'boundary'],
+            paint: { 'line-color': '#64748b', 'line-width': 1.5, 'line-dasharray': [3, 2] },
+          });
+        }
+      })
+      .catch(err => console.warn('[CountyOverlay] failed to load:', err.message));
+  }
+
+  /* ── Initial map setup ── */
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
     let cancelled = false;
     let idleWatchdog = null;
+    const tileStats = {};
+    const trackTile = (sourceId, outcome) => {
+      if (!tileStats[sourceId]) tileStats[sourceId] = { ok: 0, err: 0, first: null };
+      tileStats[sourceId][outcome]++;
+    };
 
     async function initMap() {
-      const style = await buildBasemapStyle();
+      const style = await buildBasemapStyle(resolvedThemeRef.current);
       if (cancelled) return;
-
-      // Per-source tile counters for debug reporting
-      const tileStats = {};
-      const trackTile = (sourceId, outcome) => {
-        if (!tileStats[sourceId]) tileStats[sourceId] = { ok: 0, err: 0, first: null };
-        tileStats[sourceId][outcome]++;
-      };
 
       const m = new maplibregl.Map({
         container: containerRef.current,
@@ -44,14 +86,12 @@ export default function MapView({
         center: [-111.89, 40.76],
         zoom: 9,
         maxBounds: [[-115, 36.5], [-108, 43]],
-        // Log every outgoing tile/resource request so we can see the actual URLs
         transformRequest: (url, resourceType) => {
           if (resourceType === 'Tile') {
-            const srcId = Object.keys(tileStats).find(k => url.includes(k.replace('_esri', '')))
-              ?? (url.includes('LiteBase')       ? 'litebase'
-                : url.includes('LiteLabels')     ? 'litelabels'
-                : url.includes('VectorHillshade') ? 'hillshade'
-                : 'unknown');
+            const srcId = url.includes('LiteBase')       ? 'litebase'
+                        : url.includes('LiteLabels')     ? 'litelabels'
+                        : url.includes('VectorHillshade') ? 'hillshade'
+                        : 'unknown';
             if (!tileStats[srcId]) tileStats[srcId] = { ok: 0, err: 0, first: null };
             if (!tileStats[srcId].first) {
               tileStats[srcId].first = url;
@@ -72,68 +112,33 @@ export default function MapView({
         mapRef.current = m;
         setMap(m);
 
-        // Log every source so we can spot wrong tile URLs or bounds
         const styleObj = m.getStyle();
-        console.log('[MapLoad] fired — sources:');
-        for (const [id, src] of Object.entries(styleObj.sources ?? {})) {
-          const layerCount = styleObj.layers.filter(l => l.source === id).length;
-          console.log(`  "${id}" ${layerCount} layers | tile: ${src.tiles?.[0] ?? src.url} | zoom ${src.minzoom}–${src.maxzoom} | bounds: ${JSON.stringify(src.bounds ?? 'world')}`);
-        }
-        console.log('[MapLoad] total layers:', styleObj.layers.length, '| sprite:', styleObj.sprite, '| glyphs:', styleObj.glyphs);
+        console.log('[MapLoad] fired — sources:', Object.keys(styleObj.sources ?? {}).join(', '));
+        console.log('[MapLoad] total layers:', styleObj.layers.length);
 
-        // County boundary overlay — dims everything outside the data area
-        const base = `${window.location.origin}${import.meta.env.BASE_URL}`;
-        fetch(`${base}data/counties.geojson`)
-          .then(r => r.json())
-          .then(geojson => {
-            if (cancelled) return;
-            m.addSource('county-overlay', { type: 'geojson', data: geojson });
-            m.addLayer({
-              id: 'county-mask',
-              type: 'fill',
-              source: 'county-overlay',
-              filter: ['==', ['get', 'kind'], 'mask'],
-              paint: { 'fill-color': '#1e293b', 'fill-opacity': 0.12 },
-            });
-            m.addLayer({
-              id: 'county-boundary',
-              type: 'line',
-              source: 'county-overlay',
-              filter: ['==', ['get', 'kind'], 'boundary'],
-              paint: { 'line-color': '#64748b', 'line-width': 1.5, 'line-dasharray': [3, 2] },
-            });
-          })
-          .catch(err => console.warn('[CountyOverlay] failed to load:', err.message));
+        addCustomLayers(m);
       });
 
-      // VectorHillshade layers may reference sprites not in the basemap's sheet.
-      // Add a 1×1 transparent placeholder so the layer still renders without the icon.
       m.on('styleimagemissing', (e) => {
-        console.warn(`[MapSprite] Missing icon "${e.id}" — adding transparent placeholder`);
         m.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
       });
 
-      // Track which sources finish loading all currently-visible tiles
       m.on('sourcedata', (e) => {
         if (e.isSourceLoaded && e.sourceId) {
           console.log(`[MapSource] "${e.sourceId}" fully loaded`);
         }
       });
 
-      // Watchdog: if idle hasn't fired in 10 s the map is stalled (likely proto2
-      // tile retries keeping litebase perpetually non-idle).
       idleWatchdog = setTimeout(() => {
-        console.warn('[MapIdle] Not idle after 10 s — map.loaded():', m.loaded(),
-          '| areTilesLoaded():', m.areTilesLoaded());
+        console.warn('[MapIdle] Not idle after 10 s — map.loaded():', m.loaded());
       }, 10_000);
 
-      // Add hillshade after basemap tiles settle so it doesn't compete for
-      // bandwidth during initial load.
       m.once('idle', () => {
         clearTimeout(idleWatchdog);
         if (cancelled) return;
-        console.log('[MapIdle] Basemap idle — adding hillshade now');
-        addHillshadeToMap(m).catch((err) => console.warn('[MapIdle] hillshade failed:', err));
+        addHillshadeToMap(m, resolvedThemeRef.current).catch((err) =>
+          console.warn('[MapIdle] hillshade failed:', err)
+        );
       });
 
       m.on('click', (e) => {
@@ -149,8 +154,12 @@ export default function MapView({
       m.on('mousemove', 'hex-clusters-fill', (e) => {
         const feat = e.features?.[0];
         if (!feat) return;
-        setHoveredHex({ pointName: feat.properties.pointName, countyName: feat.properties.countyName });
-        setHoveredPos({ x: e.point.x + 12, y: e.point.y - 12 });
+        setHoveredHex({
+          pointName:  feat.properties.pointName,
+          countyName: feat.properties.countyName,
+          pointColor: feat.properties.pointColor,
+        });
+        setHoveredPos({ x: e.point.x + 14, y: e.point.y - 8 });
         m.getCanvas().style.cursor = 'pointer';
       });
       m.on('mouseleave', 'hex-clusters-fill', () => {
@@ -162,12 +171,11 @@ export default function MapView({
         const msg = e.error?.message ?? '';
         const src = e.sourceId ?? 'unknown';
         trackTile(src, 'err');
-        // VectorHillshade tiles use proto2 group encoding — MapLibre skips them silently
         if (msg.includes('Unimplemented type')) {
           console.debug(`[MapError] ${src} proto2 tile skipped`);
           return;
         }
-        console.error(`[MapError] source="${src}" tile="${e.tile?.tileID?.canonical ?? ''}" — ${msg}`, e.error);
+        console.error(`[MapError] source="${src}" — ${msg}`, e.error);
       });
     }
 
@@ -180,11 +188,28 @@ export default function MapView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const kRingRef  = useRef(kRing);
-  const modeRef   = useRef(appMode);
-  useEffect(() => { kRingRef.current = kRing; },    [kRing]);
-  useEffect(() => { modeRef.current  = appMode; },  [appMode]);
+  /* ── Swap basemap when theme changes ── */
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
 
+    buildBasemapStyle(resolvedTheme).then((styleUrl) => {
+      // diff:false forces a full style reload so style.load always fires,
+      // allowing HexLayer and county overlay to re-add their sources/layers.
+      m.setStyle(styleUrl, { diff: false });
+      m.once('style.load', () => {
+        addCustomLayers(m);
+        addHillshadeToMap(m, resolvedTheme).catch(() => {});
+      });
+    });
+  }, [resolvedTheme]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const kRingRef = useRef(kRing);
+  const modeRef  = useRef(appMode);
+  useEffect(() => { kRingRef.current = kRing; },   [kRing]);
+  useEffect(() => { modeRef.current  = appMode; }, [appMode]);
+
+  /* ── Markers ── */
   useEffect(() => {
     const m = mapRef.current;
     if (!m) return;
@@ -209,6 +234,11 @@ export default function MapView({
     });
   }, [points]);
 
+  /* ── Find the hovered point's color for the tooltip accent ── */
+  const hoveredPoint = hoveredHex
+    ? points.find(p => p.name === hoveredHex.pointName)
+    : null;
+
   return (
     <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
@@ -225,15 +255,18 @@ export default function MapView({
         />
       )}
 
+      {/* Flow volume legend — shown in both overview and select modes */}
+      <FlowLegend flows={legendFlows} />
+
+      {/* Hex-cluster hover tooltip */}
       {hoveredHex && (
-        <div style={{
-          position: 'absolute', left: hoveredPos.x, top: hoveredPos.y,
-          background: '#fff', border: '1px solid #d1d5db', borderRadius: 6,
-          padding: '6px 10px', fontSize: 12, pointerEvents: 'none',
-          boxShadow: '0 2px 8px rgba(0,0,0,.15)', zIndex: 100,
-        }}>
-          <strong>{hoveredHex.pointName}</strong>
-          {hoveredHex.countyName && <div style={{ color: '#6b7280' }}>{hoveredHex.countyName}</div>}
+        <div style={{ position: 'absolute', left: hoveredPos.x, top: hoveredPos.y, pointerEvents: 'none', zIndex: 100 }}>
+          <HexTooltip
+            pointName={hoveredHex.pointName}
+            countyName={hoveredHex.countyName}
+            pointColor={hoveredPoint?.color}
+            kRing={kRing}
+          />
         </div>
       )}
     </div>

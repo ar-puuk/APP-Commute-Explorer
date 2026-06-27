@@ -1,6 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import '@fontsource-variable/inter';
+import '@fontsource-variable/open-sans';
+import './styles/tokens.css';
+import './styles/tooltips.css';
 import App from './App.jsx';
+import { ThemeProvider } from './contexts/ThemeContext.jsx';
 
 // Register Service Worker that fixes proto2 group encoding in ArcGIS PBF tiles.
 // Must run before the map initialises so the SW is active when tiles are fetched.
@@ -13,6 +18,8 @@ if ('serviceWorker' in navigator) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
   </React.StrictMode>
 );

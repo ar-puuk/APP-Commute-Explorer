@@ -5,8 +5,9 @@ const USE_UGRC_BASEMAP = false;
 
 const AGRC_BASE = 'https://tiles.arcgis.com/tiles/99lidPhWCzftIe9K/arcgis/rest/services';
 
-const CARTO_POSITRON  = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-const STYLE_CACHE_KEY = 'agrc_basemap_style_v8';
+const CARTO_POSITRON    = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const CARTO_DARK_MATTER = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const STYLE_CACHE_KEY   = 'agrc_basemap_style_v8';
 const CACHE_TTL_MS    = 24 * 60 * 60 * 1000; // 24 h
 
 // Purge any stale versioned cache entries from localStorage on module load.
@@ -107,10 +108,12 @@ async function buildFreshBasemapStyle() {
   };
 }
 
-// Returns the active basemap style.
-// When USE_UGRC_BASEMAP is false, returns Carto Positron immediately.
-// When true, fetches and caches the UGRC LiteBase + LiteLabels style.
-export async function buildBasemapStyle() {
+// Returns the active basemap style URL or style object.
+// resolvedTheme: 'light' | 'dark'. Dark always uses Carto Dark Matter.
+// When USE_UGRC_BASEMAP is false, light uses Carto Positron immediately.
+// When USE_UGRC_BASEMAP is true, light fetches and caches UGRC LiteBase + LiteLabels.
+export async function buildBasemapStyle(resolvedTheme = 'light') {
+  if (resolvedTheme === 'dark') return CARTO_DARK_MATTER;
   if (!USE_UGRC_BASEMAP) return CARTO_POSITRON;
 
   try {
@@ -135,8 +138,8 @@ export async function buildBasemapStyle() {
 // non-background layer of the already-loaded basemap.  Called after 'idle'
 // so hillshade tiles don't compete with basemap tiles during initial load.
 // The SW proto2 fix applies to hillshade tiles too.
-export async function addHillshadeToMap(map) {
-  if (!USE_UGRC_BASEMAP) return;
+export async function addHillshadeToMap(map, resolvedTheme = 'light') {
+  if (!USE_UGRC_BASEMAP || resolvedTheme === 'dark') return;
 
   let hillStyle;
   try {

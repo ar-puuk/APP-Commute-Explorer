@@ -6,38 +6,42 @@ const FILL_ID   = 'hex-clusters-fill';
 const LINE_ID   = 'hex-clusters-line';
 
 export default function HexLayer({ map, points }) {
-  const addedRef = useRef(false);
+  // Keep a ref so the style.load closure always sees the latest points
+  const pointsRef = useRef(points);
+  useEffect(() => { pointsRef.current = points; }, [points]);
 
   useEffect(() => {
     if (!map) return;
 
     const init = () => {
-      if (!map.getSource(SOURCE_ID)) {
-        map.addSource(SOURCE_ID, { type: 'geojson', data: emptyFC() });
-        map.addLayer({
-          id: FILL_ID, type: 'fill', source: SOURCE_ID,
-          paint: { 'fill-color': ['get', 'pointColor'], 'fill-opacity': 0.35 },
-        });
-        map.addLayer({
-          id: LINE_ID, type: 'line', source: SOURCE_ID,
-          paint: { 'line-color': ['get', 'pointColor'], 'line-width': 1, 'line-opacity': 0.7 },
-        });
-        addedRef.current = true;
+      try {
+        if (!map.getSource(SOURCE_ID)) {
+          map.addSource(SOURCE_ID, { type: 'geojson', data: emptyFC() });
+          map.addLayer({
+            id: FILL_ID, type: 'fill', source: SOURCE_ID,
+            paint: { 'fill-color': ['get', 'pointColor'], 'fill-opacity': 0.35 },
+          });
+          map.addLayer({
+            id: LINE_ID, type: 'line', source: SOURCE_ID,
+            paint: { 'line-color': ['get', 'pointColor'], 'line-width': 1, 'line-opacity': 0.7 },
+          });
+        }
+        // Always sync current points — covers both first init and post-setStyle reload
+        map.getSource(SOURCE_ID)?.setData(buildFC(pointsRef.current));
+      } catch (err) {
+        console.error('[HexLayer] init failed:', err);
       }
     };
 
-    if (map.isStyleLoaded()) {
-      init();
-    } else {
-      map.once('style.load', init);
-    }
+    if (map.isStyleLoaded()) init();
+    map.on('style.load', init);
+    return () => { map.off('style.load', init); };
   }, [map]);
 
+  // Keep data in sync when points change between style swaps
   useEffect(() => {
-    if (!map || !addedRef.current) return;
-    const src = map.getSource(SOURCE_ID);
-    if (!src) return;
-    src.setData(buildFC(points));
+    if (!map) return;
+    map.getSource(SOURCE_ID)?.setData(buildFC(points));
   }, [map, points]);
 
   return null;

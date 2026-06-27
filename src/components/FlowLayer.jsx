@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { FlowmapLayer } from '@flowmap.gl/layers';
+import { buildFlowTooltipHTML, buildOverviewTooltipHTML } from './FlowTooltip.jsx';
+import { SVG_UNPIN } from './Icons.jsx';
 
-const SHARED_PROPS = {
+const BASE_PROPS = {
   flowLinesRenderingMode: 'straight',
   clusteringEnabled:      false,
   locationTotalsEnabled:  true,
@@ -20,9 +22,15 @@ export default function FlowLayer({
   points, matrixCells,
   overviewLocations, overviewFlows,
 }) {
-  const overlayRef = useRef(null);
-  const tooltipRef = useRef(null);
+  const overlayRef  = useRef(null);
+  const tooltipRef  = useRef(null);
+  const closeRef    = useRef(null);   // separate × button rendered outside tooltip
+  const dockedRef   = useRef(false);  // true = position locked to top-left corner
+  const lastHtmlRef = useRef('');
+  // Ref so the stable click listener on closeRef can always call the latest undock closure
+  const undockFnRef = useRef(null);
 
+  /* ── Create overlay + tooltip DOM element + close button once ── */
   useEffect(() => {
     if (!map) return;
 
@@ -33,38 +41,104 @@ export default function FlowLayer({
 
     if (!tooltipRef.current) {
       const el = document.createElement('div');
-      el.style.cssText = [
-        'position:fixed', 'z-index:9999', 'background:#fff', 'border:1px solid #d1d5db',
-        'border-radius:8px', 'padding:10px 14px', 'box-shadow:0 4px 16px rgba(0,0,0,.15)',
-        'font-size:12px', 'min-width:220px', 'pointer-events:none', 'display:none',
-      ].join(';');
-      document.body.appendChild(el);
+      el.className = 'flow-tooltip';
+      // pointer-events:none — tooltip never blocks map interaction
+      el.style.cssText = 'display:none;position:fixed;pointer-events:none;';
+      map.getContainer().appendChild(el);
       tooltipRef.current = el;
+    }
+
+    if (!closeRef.current) {
+      const btn = document.createElement('button');
+      btn.className = 'tt-dock-close';
+      btn.title = 'Undock (or click an arc again)';
+      btn.innerHTML = SVG_UNPIN;
+      // Append to body so z-index and click events are never blocked by the map overlay
+      document.body.appendChild(btn);
+      btn.addEventListener('click', () => undockFnRef.current?.());
+      closeRef.current = btn;
     }
 
     return () => {
       tooltipRef.current?.remove();
       tooltipRef.current = null;
+      closeRef.current?.remove();
+      closeRef.current = null;
     };
   }, [map]);
 
+  /* ── Rebuild FlowmapLayer whenever data changes ── */
   useEffect(() => {
     if (!overlayRef.current) return;
 
-    const showTooltip = (info, html) => {
-      if (!tooltipRef.current) return;
+    // Legend is visible in select mode (≥2 points) and overview mode (flows loaded)
+    const legendVisible =
+      (appMode === 'select'   && points.length >= 2) ||
+      (appMode === 'overview' && (overviewFlows?.length ?? 0) > 0);
+    const DOCK_TOP = legendVisible ? 108 : 12;
+
+    /* Position the tooltip at the docked corner and show the close button */
+    const dockTooltip = () => {
+      if (!tooltipRef.current || !lastHtmlRef.current) return;
+      dockedRef.current = true;
       const rect = map.getContainer().getBoundingClientRect();
       const el = tooltipRef.current;
-      el.innerHTML = html;
+      // Prepend a small "DOCKED" label so the user knows the position is locked
+      el.innerHTML = `<div class="tt-dock-label">Docked · hover arcs to update</div>${lastHtmlRef.current}`;
       el.style.display = 'block';
-      el.style.left = `${rect.left + info.x + 12}px`;
-      el.style.top  = `${rect.top  + info.y - 12}px`;
+      el.style.left = `${rect.left + 12}px`;
+      el.style.top  = `${rect.top + DOCK_TOP}px`;
+
+      const btn = closeRef.current;
+      if (btn) {
+        // Position × at the top-right corner of the docked tooltip (tooltip is 260px wide)
+        btn.style.display = 'inline-flex';
+        btn.style.left = `${rect.left + 12 + 260 - 26}px`;
+        btn.style.top  = `${rect.top + DOCK_TOP + 5}px`;
+      }
     };
+
+    const undockTooltip = () => {
+      dockedRef.current = false;
+      if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+      if (closeRef.current)   closeRef.current.style.display = 'none';
+    };
+
+    // Keep ref current so the stable button listener always calls the latest closure
+    undockFnRef.current = undockTooltip;
+
+    const showTooltip = (info, html) => {
+      lastHtmlRef.current = html;
+      if (!tooltipRef.current) return;
+      const el = tooltipRef.current;
+      el.style.display = 'block';
+
+      if (dockedRef.current) {
+        // Update content but keep position locked
+        el.innerHTML = `<div class="tt-dock-label">Docked · hover arcs to update</div>${html}`;
+      } else {
+        // Follow cursor
+        el.innerHTML = html;
+        const rect = map.getContainer().getBoundingClientRect();
+        el.style.left = `${rect.left + info.x + 14}px`;
+        el.style.top  = `${rect.top  + info.y - 8}px`;
+      }
+    };
+
     const hideTooltip = () => {
+      if (dockedRef.current) return;   // docked tooltip stays visible
       if (tooltipRef.current) tooltipRef.current.style.display = 'none';
     };
 
-    // ── Overview mode: full-region clustered view ──────────────────────────────
+    const handleClick = () => {
+      if (dockedRef.current) {
+        undockTooltip();
+      } else if (lastHtmlRef.current) {
+        dockTooltip();
+      }
+    };
+
+    // ── Overview mode ────────────────────────────────────────────────────────
     if (appMode === 'overview') {
       if (!overviewLocations?.length || !overviewFlows?.length) {
         overlayRef.current.setProps({ layers: [] });
@@ -81,23 +155,28 @@ export default function FlowLayer({
         getFlowOriginId:  flow => flow.origin,
         getFlowDestId:    flow => flow.dest,
         getFlowMagnitude: flow => flow.count,
-        ...SHARED_PROPS,
+        ...BASE_PROPS,
         clusteringEnabled: true,
         maxTopFlowsDisplayNum: 150,
+        onClick: handleClick,
         onHover: (info) => {
           const obj = info?.object;
           if (!obj || !info.picked) { hideTooltip(); return; }
           if (obj.type === 'flow') {
-            const o = obj.origin?.name ?? '?';
-            const d = obj.dest?.name   ?? '?';
-            showTooltip(info, `
-              <div style="font-weight:700">${o} → ${d}</div>
-              <div style="margin-top:4px">Commuters: ${obj.count?.toLocaleString() ?? '?'}</div>
-            `);
+            showTooltip(info, buildOverviewTooltipHTML('arc', {
+              count:      obj.count,
+              originName: obj.origin?.name ?? '?',
+              destName:   obj.dest?.name   ?? '?',
+            }));
           } else if (obj.type === 'location') {
-            showTooltip(info, `
-              <div style="font-weight:700">${obj.name ?? '?'}</div>
-            `);
+            const locId   = obj.id ?? obj.location?.id;
+            const inbound  = (overviewFlows ?? []).filter(f => f.dest   === locId).reduce((s, f) => s + f.count, 0);
+            const outbound = (overviewFlows ?? []).filter(f => f.origin === locId).reduce((s, f) => s + f.count, 0);
+            showTooltip(info, buildOverviewTooltipHTML('location', {
+              name: obj.name ?? '?',
+              inbound,
+              outbound,
+            }));
           } else {
             hideTooltip();
           }
@@ -108,7 +187,7 @@ export default function FlowLayer({
       return;
     }
 
-    // ── Select mode: user-defined points ──────────────────────────────────────
+    // ── Select mode ──────────────────────────────────────────────────────────
     if (points.length < 2) {
       overlayRef.current.setProps({ layers: [] });
       return;
@@ -126,8 +205,6 @@ export default function FlowLayer({
       }
     }
 
-    const pctStr = (n, total) => total ? ` ${Math.round(n / total * 100)}%` : '';
-
     const layer = new FlowmapLayer({
       id: 'commute-flows-select',
       data: {
@@ -141,42 +218,34 @@ export default function FlowLayer({
       getFlowOriginId:  flow => flow.origin,
       getFlowDestId:    flow => flow.dest,
       getFlowMagnitude: flow => flow.count,
-      ...SHARED_PROPS,
+      ...BASE_PROPS,
+      onClick: handleClick,
       onHover: (info) => {
         const obj = info?.object;
         if (!obj || !info.picked) { hideTooltip(); return; }
 
         if (obj.type === 'flow') {
-          const { cell } = obj;
+          // FlowmapLayer's hover object doesn't carry the original flow data —
+          // look up the cell from matrixCells using the location IDs it does provide.
+          const originId = obj.origin?.id;
+          const destId   = obj.dest?.id;
+          const cell     = originId && destId ? matrixCells.get(`${originId}|${destId}`) : null;
           if (!cell) { hideTooltip(); return; }
-          const S = cell.S000;
-          const oName = points.find(p => p.id === cell.originPointId)?.name ?? '?';
-          const dName = points.find(p => p.id === cell.destPointId)?.name   ?? '?';
-          showTooltip(info, `
-            <div style="font-weight:700;margin-bottom:6px">${oName} → ${dName}</div>
-            <div style="border-top:1px solid #e5e7eb;padding-top:6px">
-              <div style="font-weight:700">Total commuters: ${S.toLocaleString()}</div>
-              <div>Low wage (SA01): ${cell.SA01.toLocaleString()}${pctStr(cell.SA01, S)}</div>
-              <div>Mid wage (SA02): ${cell.SA02.toLocaleString()}${pctStr(cell.SA02, S)}</div>
-              <div>High wage (SA03): ${cell.SA03.toLocaleString()}${pctStr(cell.SA03, S)}</div>
-            </div>
-            <div style="border-top:1px solid #e5e7eb;padding-top:6px;margin-top:6px">
-              <div>Goods-producing (SI01): ${cell.SI01.toLocaleString()}${pctStr(cell.SI01, S)}</div>
-              <div>Trade/transport (SI02):  ${cell.SI02.toLocaleString()}${pctStr(cell.SI02, S)}</div>
-              <div>Other services (SI03):   ${cell.SI03.toLocaleString()}${pctStr(cell.SI03, S)}</div>
-              <div style="font-size:10px;color:#9ca3af;margin-top:4px">ⓘ Industry reflects job type at destination</div>
-            </div>
-          `);
+          const oPoint = points.find(p => p.id === originId);
+          const dPoint = points.find(p => p.id === destId);
+          showTooltip(info, buildFlowTooltipHTML('arc', {
+            cell,
+            originName:  oPoint?.name  ?? obj.origin?.name ?? '?',
+            destName:    dPoint?.name  ?? obj.dest?.name   ?? '?',
+            originColor: oPoint?.color ?? 'var(--color-brand-600)',
+            destColor:   dPoint?.color ?? 'var(--color-text-muted)',
+          }));
         } else if (obj.type === 'location') {
           const p = points.find(pt => pt.id === (obj.location?.id ?? obj.id));
           if (!p) { hideTooltip(); return; }
           const inbound  = [...matrixCells.values()].filter(c => c.destPointId   === p.id).reduce((s, c) => s + c.S000, 0);
           const outbound = [...matrixCells.values()].filter(c => c.originPointId === p.id).reduce((s, c) => s + c.S000, 0);
-          showTooltip(info, `
-            <div style="font-weight:700">${p.name} — ${p.countyName}</div>
-            <div>Outbound (as origin): ${outbound.toLocaleString()}</div>
-            <div>Inbound (as dest): ${inbound.toLocaleString()}</div>
-          `);
+          showTooltip(info, buildFlowTooltipHTML('node', { point: p, inbound, outbound }));
         } else {
           hideTooltip();
         }

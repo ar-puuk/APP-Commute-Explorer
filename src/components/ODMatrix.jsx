@@ -1,46 +1,93 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { matrixColor } from '../utils/colors.js';
+import { useMatrixTooltip } from './FlowTooltip.jsx';
+import { exportWide, exportLong } from '../utils/MatrixExport.js';
+import { ArrowLeftIcon, ArrowRightIcon } from './Icons.jsx';
 
-function FlowTooltip({ cell, originName, destName }) {
-  if (!cell || !cell.S000) return null;
-  const pct = (n) => cell.S000 ? `${Math.round(n / cell.S000 * 100)}%` : '—';
+/* ── Download dropdown ────────────────────────────────────────────────────── */
+function DownloadMenu({ points, matrixCells, year }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
   return (
-    <div style={{
-      position: 'fixed', zIndex: 9999, background: '#fff', border: '1px solid #d1d5db',
-      borderRadius: 8, padding: '10px 14px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-      fontSize: 12, minWidth: 220, pointerEvents: 'none',
-    }}>
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>{originName} → {destName}</div>
-      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 6 }}>
-        <Row label="Total commuters" value={cell.S000.toLocaleString()} bold />
-        <Row label="Low wage (SA01)"  value={cell.SA01.toLocaleString()} pct={pct(cell.SA01)} />
-        <Row label="Mid wage (SA02)"  value={cell.SA02.toLocaleString()} pct={pct(cell.SA02)} />
-        <Row label="High wage (SA03)" value={cell.SA03.toLocaleString()} pct={pct(cell.SA03)} />
-      </div>
-      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 6, marginTop: 6 }}>
-        <Row label="Goods-producing (SI01)"   value={cell.SI01.toLocaleString()} pct={pct(cell.SI01)} />
-        <Row label="Trade/transport (SI02)"   value={cell.SI02.toLocaleString()} pct={pct(cell.SI02)} />
-        <Row label="Other services (SI03)"    value={cell.SI03.toLocaleString()} pct={pct(cell.SI03)} />
-        <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 4 }}>
-          ⓘ Industry reflects job type at destination
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="btn-secondary"
+        style={{ fontSize: 13, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+      >
+        Download
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+          <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: 4,
+            background: 'var(--color-surface-elevated)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-md)',
+            minWidth: 200,
+            zIndex: 50,
+            overflow: 'hidden',
+          }}
+        >
+          {[
+            {
+              label: 'Wide format (matrix)',
+              desc:  'Matches visual layout · for sharing',
+              fn:    () => exportWide(points, matrixCells, year),
+            },
+            {
+              label: 'Long format (tidy)',
+              desc:  'One row per pair · for R / Python',
+              fn:    () => exportLong(points, matrixCells, year),
+            },
+          ].map(({ label, desc, fn }) => (
+            <button
+              key={label}
+              onClick={() => { fn(); setOpen(false); }}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                background: 'none',
+                border: 'none',
+                padding: '8px 12px',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                color: 'var(--color-text-primary)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-surface-raised)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
+              <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{desc}</span>
+            </button>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function Row({ label, value, pct, bold }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 2, fontWeight: bold ? 700 : 400 }}>
-      <span>{label}</span>
-      <span>{value}{pct ? <span style={{ color: '#6b7280', marginLeft: 6 }}>{pct}</span> : null}</span>
-    </div>
-  );
-}
-
-export default function ODMatrix({ points, matrixCells }) {
-  const [tooltip, setTooltip] = useState(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+/* ── Main ODMatrix ────────────────────────────────────────────────────────── */
+export default function ODMatrix({ points, matrixCells, year, totalCommuters }) {
+  const { show, move, hide, element: tooltipElement } = useMatrixTooltip();
 
   if (points.length < 2) return null;
 
@@ -48,77 +95,332 @@ export default function ODMatrix({ points, matrixCells }) {
 
   const rowTotals = new Map();
   const colTotals = new Map();
-  for (const [key, cell] of matrixCells) {
+  for (const [, cell] of matrixCells) {
     rowTotals.set(cell.originPointId, (rowTotals.get(cell.originPointId) ?? 0) + cell.S000);
     colTotals.set(cell.destPointId,   (colTotals.get(cell.destPointId)   ?? 0) + cell.S000);
   }
 
-  return (
-    <div style={{ flex: 1, overflow: 'auto', padding: 16, background: '#fff' }}>
-      <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
-        <thead>
-          <tr>
-            <th style={thStyle}></th>
-            {points.map(p => (
-              <th key={p.id} style={{ ...thStyle, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <span style={{ color: p.color }}>●</span> {p.name}
-              </th>
-            ))}
-            <th style={{ ...thStyle, fontWeight: 700 }}>TOTAL →</th>
-          </tr>
-        </thead>
-        <tbody>
-          {points.map(origin => (
-            <tr key={origin.id}>
-              <td style={{ ...tdStyle, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                <span style={{ color: origin.color }}>●</span> {origin.name}
-              </td>
-              {points.map(dest => {
-                const cell = matrixCells.get(`${origin.id}|${dest.id}`);
-                const val = cell?.S000 ?? 0;
-                const bg = matrixColor(val, maxVal);
-                return (
-                  <td
-                    key={dest.id}
-                    style={{ ...tdStyle, background: bg ?? '#fff', textAlign: 'right', cursor: val ? 'pointer' : 'default' }}
-                    onMouseEnter={val ? (e) => { setTooltip({ cell, originName: origin.name, destName: dest.name }); setTooltipPos({ x: e.clientX + 12, y: e.clientY - 12 }); } : undefined}
-                    onMouseMove={val ? (e) => setTooltipPos({ x: e.clientX + 12, y: e.clientY - 12 }) : undefined}
-                    onMouseLeave={() => setTooltip(null)}
-                  >
-                    {val ? val.toLocaleString() : <span style={{ color: '#d1d5db' }}>—</span>}
-                  </td>
-                );
-              })}
-              <td style={{ ...tdStyle, fontWeight: 700, textAlign: 'right' }}>
-                {(rowTotals.get(origin.id) ?? 0).toLocaleString()}
-              </td>
-            </tr>
-          ))}
-          <tr>
-            <td style={{ ...tdStyle, fontWeight: 700 }}>TOTAL ↓</td>
-            {points.map(dest => (
-              <td key={dest.id} style={{ ...tdStyle, fontWeight: 700, textAlign: 'right' }}>
-                {(colTotals.get(dest.id) ?? 0).toLocaleString()}
-              </td>
-            ))}
-            <td style={{ ...tdStyle }} />
-          </tr>
-        </tbody>
-      </table>
+  const rotateHeaders = points.length >= 4;
 
-      {tooltip && (
-        <div style={{ position: 'fixed', left: tooltipPos.x, top: tooltipPos.y, zIndex: 9999 }}>
-          <FlowTooltip {...tooltip} />
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--color-surface)' }}>
+
+      {/* ── Sticky header bar ── */}
+      <div
+        style={{
+          padding: '10px 16px',
+          borderBottom: '1px solid var(--color-border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'var(--color-surface)',
+          flexShrink: 0,
+          zIndex: 3,
+        }}
+      >
+        <div>
+          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-text-primary)' }}>
+            Origin-Destination Matrix
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--color-text-muted)', marginLeft: 8 }}>
+            {year} · {points.length} zones · {totalCommuters.toLocaleString()} commuters
+          </span>
         </div>
-      )}
+        <DownloadMenu points={points} matrixCells={matrixCells} year={year} />
+      </div>
+
+      {/* ── Scrollable table area ── */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
+
+        {/* DESTINATION axis label */}
+        <div
+          style={{
+            paddingTop: 12,
+            paddingBottom: 4,
+            paddingLeft: 120, /* indent past the ORIGIN label column */
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: 'var(--color-text-secondary)',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeftIcon size={12} />
+            Destination — where workers are employed
+            <ArrowRightIcon size={12} />
+          </span>
+        </div>
+
+        <div style={{ display: 'flex' }}>
+          {/* ORIGIN axis label (rotated) */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              writingMode: 'vertical-rl',
+              transform: 'rotate(180deg)',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: 'var(--color-text-secondary)',
+              width: 20,
+              flexShrink: 0,
+              paddingBottom: 40, /* offset past the totals row */
+            }}
+          >
+            Origin — where workers live
+          </div>
+
+          {/* Table */}
+          <div style={{ overflowX: 'auto', flex: 1 }}>
+            <table
+              style={{
+                borderCollapse: 'collapse',
+                fontSize: 13,
+                tableLayout: 'fixed',
+                minWidth: '100%',
+              }}
+            >
+              <thead>
+                <tr>
+                  {/* Corner cell */}
+                  <th
+                    style={{
+                      ...thBase,
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 2,
+                      width: 130,
+                      minWidth: 130,
+                      fontSize: 11,
+                      color: 'var(--color-text-muted)',
+                      textAlign: 'left',
+                      fontWeight: 400,
+                    }}
+                  >
+                    <div style={{ position: 'relative', minHeight: 32 }}>
+                      <svg
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
+                        aria-hidden="true"
+                      >
+                        <line x1="0" y1="100%" x2="100%" y2="0" stroke="var(--color-border)" strokeWidth="1" />
+                      </svg>
+                      <span style={{ position: 'absolute', bottom: 2, left: 3, fontSize: 10, lineHeight: 1 }}>Origin</span>
+                      <span style={{ position: 'absolute', top: 2, right: 3, fontSize: 10, lineHeight: 1 }}>Dest</span>
+                    </div>
+                  </th>
+
+                  {/* Destination column headers */}
+                  {points.map(p => (
+                    <th
+                      key={p.id}
+                      style={{
+                        ...thBase,
+                        width: 110,
+                        minWidth: 90,
+                        maxWidth: 130,
+                        ...(rotateHeaders ? {
+                          height: 80,
+                          verticalAlign: 'bottom',
+                          paddingBottom: 8,
+                        } : {}),
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: rotateHeaders ? 'flex-start' : 'center',
+                          gap: 4,
+                          ...(rotateHeaders ? {
+                            transform: 'rotate(-45deg)',
+                            transformOrigin: 'bottom left',
+                            whiteSpace: 'nowrap',
+                            width: 'max-content',
+                            marginLeft: 8,
+                          } : {}),
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            background: p.color,
+                            flexShrink: 0,
+                          }}
+                        />
+                        {p.name}
+                      </div>
+                    </th>
+                  ))}
+
+                  {/* Outbound total header */}
+                  <th
+                    style={{
+                      ...thBase,
+                      ...totalHeaderStyle,
+                      width: 110,
+                      minWidth: 90,
+                    }}
+                  >
+                    OUTBOUND<br />TOTAL
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {points.map(origin => {
+                  return (
+                    <tr key={origin.id}>
+                      {/* Origin row header (sticky) */}
+                      <td
+                        style={{
+                          ...tdBase,
+                          position: 'sticky',
+                          left: 0,
+                          zIndex: 1,
+                          background: 'var(--color-surface)',
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              background: origin.color,
+                              flexShrink: 0,
+                            }}
+                          />
+                          {origin.name}
+                        </div>
+                      </td>
+
+                      {/* Data cells */}
+                      {points.map(dest => {
+                        const isSelf = origin.id === dest.id;
+                        const cell   = matrixCells.get(`${origin.id}|${dest.id}`);
+                        const val    = cell?.S000 ?? 0;
+                        const bg     = isSelf
+                          ? 'repeating-linear-gradient(45deg, var(--color-surface-raised), var(--color-surface-raised) 2px, var(--color-surface) 2px, var(--color-surface) 8px)'
+                          : (matrixColor(val, maxVal) ?? 'var(--color-surface)');
+
+                        return (
+                          <td
+                            key={dest.id}
+                            title={isSelf ? 'Intra-zonal: workers living and working within the same zone' : undefined}
+                            style={{
+                              ...tdBase,
+                              background: bg,
+                              textAlign: 'right',
+                              cursor: val ? 'pointer' : 'default',
+                              position: 'relative',
+                            }}
+                            onMouseEnter={val ? (e) => show(e, cell, origin.name, dest.name, origin.color, dest.color) : undefined}
+                            onMouseMove={val  ? (e) => move(e) : undefined}
+                            onMouseLeave={val ? hide : undefined}
+                          >
+                            {isSelf ? (
+                              val ? (
+                                <span style={{ fontStyle: 'italic', color: 'var(--color-text-secondary)', fontSize: 12 }}>
+                                  {val.toLocaleString()}
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--color-text-disabled)' }}>—</span>
+                              )
+                            ) : val ? (
+                              val.toLocaleString()
+                            ) : (
+                              <span style={{ color: 'var(--color-text-disabled)' }}>—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+
+                      {/* Outbound total */}
+                      <td style={{ ...tdBase, ...totalCellStyle, textAlign: 'right' }}>
+                        {(rowTotals.get(origin.id) ?? 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {/* Inbound totals row */}
+                <tr>
+                  <td
+                    style={{
+                      ...tdBase,
+                      ...totalCellStyle,
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 1,
+                    }}
+                  >
+                    INBOUND TOTAL
+                  </td>
+                  {points.map(dest => (
+                    <td key={dest.id} style={{ ...tdBase, ...totalCellStyle, textAlign: 'right' }}>
+                      {(colTotals.get(dest.id) ?? 0).toLocaleString()}
+                    </td>
+                  ))}
+                  <td style={{ ...tdBase, background: 'var(--color-surface-raised)' }} />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <p style={{ marginTop: 10, fontSize: 12, color: 'var(--color-text-muted)' }}>
+          Hover any cell for wage + industry breakdown.
+        </p>
+      </div>
+
+      {tooltipElement}
     </div>
   );
 }
 
-const thStyle = {
-  padding: '6px 10px', borderBottom: '2px solid #e5e7eb',
-  textAlign: 'left', fontWeight: 700, background: '#f9fafb', fontSize: 12,
+/* ── Shared cell styles ───────────────────────────────────────────────────── */
+const thBase = {
+  padding: '6px 10px',
+  borderBottom: '2px solid var(--color-border)',
+  background: 'var(--color-surface-raised)',
+  fontWeight: 700,
+  fontSize: 13,
+  color: 'var(--color-text-primary)',
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
 };
-const tdStyle = {
-  padding: '5px 10px', border: '1px solid #e5e7eb', fontSize: 12,
+
+const tdBase = {
+  padding: '5px 10px',
+  border: '1px solid var(--color-border)',
+  fontSize: 13,
+  color: 'var(--color-text-primary)',
+};
+
+const totalHeaderStyle = {
+  background: 'var(--color-surface-raised)',
+  color: 'var(--color-text-secondary)',
+  fontSize: 12,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+};
+
+const totalCellStyle = {
+  background: 'var(--color-surface-raised)',
+  fontWeight: 700,
+  fontSize: 12,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  color: 'var(--color-text-secondary)',
 };

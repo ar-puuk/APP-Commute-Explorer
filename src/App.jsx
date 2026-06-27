@@ -154,7 +154,9 @@ export default function App() {
               points={points}
               kRing={kRing}
               activeView={activeView}
+              year={year}
               onAddPoint={addPointResolved}
+              onEnterSelect={enterSelectMode}
               matrixCells={matrixCells}
               allClaimedHexIds={allClaimedHexIds}
               overviewLocations={overviewLocations}

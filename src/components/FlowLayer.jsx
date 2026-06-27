@@ -21,6 +21,7 @@ export default function FlowLayer({
   map, appMode,
   points, matrixCells,
   overviewLocations, overviewFlows,
+  deckClickedRef,
 }) {
   const overlayRef  = useRef(null);
   const tooltipRef  = useRef(null);
@@ -131,6 +132,7 @@ export default function FlowLayer({
     };
 
     const handleClick = () => {
+      if (deckClickedRef) deckClickedRef.current = true;
       if (dockedRef.current) {
         undockTooltip();
       } else if (lastHtmlRef.current) {

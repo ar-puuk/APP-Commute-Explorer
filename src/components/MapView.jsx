@@ -13,14 +13,17 @@ import { HexTooltip } from './FlowTooltip.jsx';
 export default function MapView({
   appMode, points, kRing, activeView,
   onAddPoint,
+  onEnterSelect,
   matrixCells,
   allClaimedHexIds,
   overviewLocations,
   overviewFlows,
+  year,
 }) {
-  const containerRef = useRef(null);
-  const mapRef       = useRef(null);
-  const markersRef   = useRef([]);
+  const containerRef    = useRef(null);
+  const mapRef          = useRef(null);
+  const markersRef      = useRef([]);
+  const deckClickedRef  = useRef(false);
   const [map, setMap] = useState(null);
   const [hoveredHex, setHoveredHex] = useState(null);
   const [hoveredPos,  setHoveredPos]  = useState({ x: 0, y: 0 });
@@ -142,6 +145,9 @@ export default function MapView({
       });
 
       m.on('click', (e) => {
+        // FlowLayer sets this flag when deck.gl consumes the click (arc/node tooltip dock).
+        // Both fire on the same pointer event; checking the flag prevents a ghost point.
+        if (deckClickedRef.current) { deckClickedRef.current = false; return; }
         if (modeRef.current !== 'select') return;
         const { lng, lat } = e.lngLat;
         const rootH3     = latlngToCell(lat, lng);
@@ -252,11 +258,44 @@ export default function MapView({
           matrixCells={matrixCells}
           overviewLocations={overviewLocations}
           overviewFlows={overviewFlows}
+          deckClickedRef={deckClickedRef}
         />
       )}
 
       {/* Flow volume legend — shown in both overview and select modes */}
       <FlowLegend flows={legendFlows} />
+
+      {/* Overview intro card */}
+      {appMode === 'overview' && (
+        <div style={{
+          position: 'absolute',
+          bottom: 40,
+          left: 12,
+          width: 320,
+          padding: '16px 18px',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-lg)',
+          background: 'var(--glass-bg)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 10,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--color-text-secondary)', marginBottom: 4 }}>
+            Wasatch Front Commuter Flows
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 10 }}>
+            LODES · {year} · 8 counties
+          </div>
+          <div style={{ height: 1, background: 'var(--color-border)', marginBottom: 10 }} />
+          <div style={{ fontSize: 14, color: 'var(--color-text-primary)', lineHeight: 1.5, marginBottom: 14 }}>
+            Click anywhere on the map to explore commuter flows between locations.
+          </div>
+          <button className="btn-primary" style={{ width: '100%' }} onClick={onEnterSelect}>
+            Select Analysis Points →
+          </button>
+        </div>
+      )}
 
       {/* Hex-cluster hover tooltip */}
       {hoveredHex && (

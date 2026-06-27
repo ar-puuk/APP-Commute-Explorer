@@ -80,6 +80,16 @@ export function usePoints(kRing) {
     });
   }, []);
 
+  const movePointToIndex = useCallback((fromIdx, toIdx) => {
+    setPoints(prev => {
+      if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || toIdx >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, item);
+      return next;
+    });
+  }, []);
+
   const clearPoints = useCallback(() => setPoints([]), []);
 
   const recomputeAllClusters = useCallback((newK) => {
@@ -104,6 +114,7 @@ export function usePoints(kRing) {
     deletePoint,
     renamePoint,
     reorderPoint,
+    movePointToIndex,
     recomputeAllClusters,
     isNameDuplicate,
     clearPoints,

@@ -1,10 +1,26 @@
+import { useRef, useState } from 'react';
 import PointCard from './PointCard.jsx';
 import { WarningIcon } from './Icons.jsx';
 
 export default function AnalysisPanel({
   points, overlapPairs, totalCommuters, year,
-  onDelete, onRename, onReorder, isNameDuplicate,
+  onDelete, onRename, onReorder, onMoveToIndex, isNameDuplicate,
 }) {
+  const dragIdxRef    = useRef(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
+
+  const handleDragStart = (idx) => { dragIdxRef.current = idx; };
+  const handleDragOver  = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
+  const handleDragLeave = () => setDragOverIdx(null);
+  const handleDrop      = (idx) => {
+    setDragOverIdx(null);
+    if (dragIdxRef.current !== null && dragIdxRef.current !== idx) {
+      onMoveToIndex(dragIdxRef.current, idx);
+    }
+    dragIdxRef.current = null;
+  };
+  const handleDragEnd   = () => { dragIdxRef.current = null; setDragOverIdx(null); };
+
   const getOverlapNames = (id) =>
     overlapPairs
       .filter(([a, b]) => a === id || b === id)
@@ -53,11 +69,18 @@ export default function AnalysisPanel({
               key={p.id}
               point={p}
               index={idx}
+              total={points.length}
               onDelete={onDelete}
               onRename={onRename}
               onReorder={onReorder}
               isNameDuplicate={isNameDuplicate}
               overlapNames={getOverlapNames(p.id)}
+              isDragOver={dragOverIdx === idx}
+              onDragStart={() => handleDragStart(idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDragLeave={handleDragLeave}
+              onDrop={() => handleDrop(idx)}
+              onDragEnd={handleDragEnd}
             />
           ))}
         </div>

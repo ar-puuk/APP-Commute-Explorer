@@ -13,10 +13,20 @@ const DownIcon = () => (
   </svg>
 );
 
+const GripIcon = () => (
+  <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor" aria-hidden="true">
+    <circle cx="4" cy="2.5"  r="1.2"/><circle cx="8" cy="2.5"  r="1.2"/>
+    <circle cx="4" cy="7"    r="1.2"/><circle cx="8" cy="7"    r="1.2"/>
+    <circle cx="4" cy="11.5" r="1.2"/><circle cx="8" cy="11.5" r="1.2"/>
+  </svg>
+);
+
 export default function PointCard({
-  point, index,
+  point, index, total,
   onDelete, onRename, onReorder,
   isNameDuplicate, overlapNames,
+  isDragOver,
+  onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
 }) {
   const [editing,   setEditing]   = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -41,19 +51,42 @@ export default function PointCard({
 
   return (
     <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
       style={{
         background: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
+        border: `1px solid ${isDragOver ? 'var(--color-brand-600)' : 'var(--color-border)'}`,
         borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-sm)',
+        boxShadow: isDragOver ? 'var(--shadow-md)' : 'var(--shadow-sm)',
         padding: '8px 10px',
-        transition: 'background 0.12s ease',
+        transition: 'background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease',
+        opacity: isDragOver ? 0.85 : 1,
+        cursor: 'default',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-surface-raised)'; }}
+      onMouseEnter={e => { if (!isDragOver) e.currentTarget.style.background = 'var(--color-surface-raised)'; }}
       onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-surface)'; }}
     >
-      {/* Top row: swatch + index + name + actions */}
+      {/* Top row: grip + swatch + index + name + actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Drag handle */}
+        <span
+          style={{
+            color: 'var(--color-text-muted)',
+            cursor: 'grab',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 2px',
+          }}
+          title="Drag to reorder"
+        >
+          <GripIcon />
+        </span>
+
         {/* Color swatch */}
         <span
           style={{
@@ -113,16 +146,18 @@ export default function PointCard({
           <button
             aria-label="Move up"
             onClick={() => onReorder(point.id, 'up')}
+            disabled={index === 0}
             className="btn-icon"
-            style={{ width: 24, height: 24 }}
+            style={{ width: 24, height: 24, opacity: index === 0 ? 0.3 : 1 }}
           >
             <UpIcon />
           </button>
           <button
             aria-label="Move down"
             onClick={() => onReorder(point.id, 'down')}
+            disabled={index === total - 1}
             className="btn-icon"
-            style={{ width: 24, height: 24 }}
+            style={{ width: 24, height: 24, opacity: index === total - 1 ? 0.3 : 1 }}
           >
             <DownIcon />
           </button>
@@ -149,7 +184,7 @@ export default function PointCard({
       {point.countyName && !editing && (
         <div style={{
           marginTop: 3,
-          marginLeft: 34,
+          marginLeft: 38,
           fontSize: 12,
           color: 'var(--color-text-muted)',
         }}>
@@ -161,7 +196,7 @@ export default function PointCard({
       {editing && editError && (
         <div style={{
           marginTop: 3,
-          marginLeft: 34,
+          marginLeft: 38,
           fontSize: 12,
           color: 'var(--color-error)',
         }}>
@@ -173,7 +208,7 @@ export default function PointCard({
       {!editing && overlapNames.length > 0 && (
         <div style={{
           marginTop: 3,
-          marginLeft: 34,
+          marginLeft: 38,
           fontSize: 12,
           color: 'var(--color-warning)',
           display: 'flex',

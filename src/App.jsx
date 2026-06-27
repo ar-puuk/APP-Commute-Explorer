@@ -25,7 +25,7 @@ export default function App() {
 
   const {
     points, pointClusters, allClaimedHexIds, overlapPairs,
-    addPointResolved, deletePoint, renamePoint, reorderPoint,
+    addPointResolved, deletePoint, renamePoint, reorderPoint, movePointToIndex,
     recomputeAllClusters, isNameDuplicate,
     clearPoints,
   } = usePoints(kRing);
@@ -135,6 +135,7 @@ export default function App() {
             onDelete={deletePoint}
             onRename={renamePoint}
             onReorder={reorderPoint}
+            onMoveToIndex={movePointToIndex}
             isNameDuplicate={isNameDuplicate}
           />
         )}

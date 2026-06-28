@@ -3,6 +3,7 @@ import { usePoints } from './hooks/usePoints.js';
 import { useFlows }  from './hooks/useFlows.js';
 import { initDB, loadYear, queryAllOD } from './hooks/useDuckDB.js';
 import { loadHexMeta } from './utils/countyConfig.js';
+import { useFavicon } from './hooks/useFavicon.js';
 import AppHeader    from './components/AppHeader.jsx';
 import MapView      from './components/MapView.jsx';
 import ODMatrix     from './components/ODMatrix.jsx';
@@ -11,6 +12,8 @@ import AnalysisPanel from './components/AnalysisPanel.jsx';
 const MIN_K = 0;
 
 export default function App() {
+  useFavicon();
+
   const [year,       setYear]       = useState(2019);
   const [kRing,      setKRing]      = useState(1);
   const [activeView, setActiveView] = useState('map');

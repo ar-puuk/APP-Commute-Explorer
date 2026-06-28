@@ -3,20 +3,9 @@ import YearSelector  from './YearSelector.jsx';
 import RingSelector  from './RingSelector.jsx';
 import ViewToggle    from './ViewToggle.jsx';
 import { WarningIcon, ChevronLeftIcon, ChevronRightIcon } from './Icons.jsx';
-
-function HexLogo() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-      <polygon
-        points="11,2 19.66,6.5 19.66,15.5 11,20 2.34,15.5 2.34,6.5"
-        stroke="var(--color-brand-600)"
-        strokeWidth="1.8"
-        fill="none"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import { useTheme } from '../contexts/ThemeContext.jsx';
+import logoColor from '../../assets/logo/WFRC_logo_abbreviated_color_transparent.png';
+import logoWhite from '../../assets/logo/WFRC_logo_abbreviated_white_transparent.png';
 
 function Spinner() {
   return (
@@ -44,6 +33,7 @@ export default function AppHeader({
 }) {
   const isSelect  = appMode === 'select';
   const isLoading = loading || overviewLoading || (!dbReady && !error);
+  const { resolvedTheme } = useTheme();
 
   return (
     <>
@@ -64,32 +54,21 @@ export default function AppHeader({
           position: 'relative',
         }}
       >
-        {/* ── Left zone: theme switcher + logo + title ── */}
+        {/* ── Left zone: theme switcher + WFRC logo + title ── */}
         <ThemeSwitcher />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <HexLogo />
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
-            Commute Flow Explorer
-          </span>
-          {/* WFRC agency badge */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '2px 7px',
-            background: 'var(--color-brand-50)',
-            border: '1px solid rgba(224, 123, 44, 0.3)',
-            borderRadius: 'var(--radius-sm)',
-            flexShrink: 0,
-          }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-brand-600)', letterSpacing: '0.06em' }}>
-              WFRC
-            </span>
-          </div>
-        </div>
+        <img
+          src={resolvedTheme === 'dark' ? logoWhite : logoColor}
+          alt="WFRC"
+          height="28"
+          style={{ display: 'block', flexShrink: 0 }}
+        />
 
-        {/* Vertical divider */}
         <div style={{ width: 1, height: 24, background: 'var(--color-border)', flexShrink: 0 }} />
+
+        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
+          Commute Flow Explorer
+        </span>
 
         {/* ── Data controls zone ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>

@@ -2,7 +2,25 @@
 
 An interactive, client-side web app for exploring origin-destination commuter flows across the Wasatch Front metro area (8 Utah counties). Built for planners, researchers, and curious people who want to understand how workers move across the region.
 
-**[Live demo →](https://ar-puuk.github.io/APP-Commute-Explorer/)**
+**[Live demo →](https://wfrcanalytics.github.io/APP-Commute-Explorer/)**
+
+---
+
+## How this differs from [APP-WFRC-Commute-Patterns](https://github.com/WFRCAnalytics/APP-WFRC-Commute-Patterns)
+
+WFRC maintains two commute flow tools built on the same LODES data. They answer different questions:
+
+| | APP-WFRC-Commute-Patterns | APP-Commute-Explorer (this app) |
+|---|---|---|
+| **Geography** | Pre-defined zones — cities, counties, legislative districts | Free-placement — click anywhere on the map |
+| **Spatial unit** | Administrative boundaries | H3 hexagonal cells (res-9, ~0.1 km²) |
+| **Analysis mode** | One zone at a time: "where do Salt Lake City residents work?" | 2–10 custom points simultaneously: compare flows between any locations |
+| **Best for** | Policy questions tied to jurisdictions and political districts | Site-specific studies — transit stops, employment centres, catchment areas |
+| **Analytics depth** | Rich sidepanel — ACS commute mode, travel time, distance bands, industry mix | Focused on raw OD volumes and the OD matrix between selected points |
+| **Region** | Statewide Utah | 8 Wasatch Front counties (configurable to any US region) |
+| **Framework** | Vanilla JS | React 18 + Vite |
+
+**Rule of thumb:** use Commute Patterns when your question is about a named jurisdiction; use Commute Explorer when you want to draw your own catchment areas and compare them.
 
 ---
 
@@ -44,19 +62,17 @@ An interactive, client-side web app for exploring origin-destination commuter fl
 
 - Node.js 20+
 - Python 3.11+ with [uv](https://github.com/astral-sh/uv)
-- Git LFS
 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/ar-puuk/APP-Commute-Explorer.git
+git clone https://github.com/WFRCAnalytics/APP-Commute-Explorer.git
 cd APP-Commute-Explorer
-git lfs pull          # download pre-built Parquet data files
 npm install
 npm run dev           # http://localhost:5173
 ```
 
-The pre-built data files for the Wasatch Front are committed via Git LFS, so you can run the app immediately without re-running the pipeline.
+The pre-built Parquet data files for the Wasatch Front are committed to the repo, so the app runs immediately without re-running the pipeline.
 
 ### 2. Run the pipeline (only needed after changing counties or updating LODES data)
 
@@ -110,7 +126,7 @@ Push to `main` → GitHub Actions builds and deploys to GitHub Pages automatical
 git push origin main
 ```
 
-The workflow is at `.github/workflows/deploy.yml`. Parquet files are fetched from Git LFS during the build and deployed as static assets.
+The workflow is at `.github/workflows/deploy.yml`.
 
 ---
 

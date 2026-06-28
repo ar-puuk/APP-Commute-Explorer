@@ -51,7 +51,7 @@ uv run build_od_parquet.py     # → public/data/od_{2002..2023}.parquet
 uv run build_counties_geojson.py  # → public/data/counties.geojson (map boundary overlay)
 ```
 
-Pipeline outputs go to `public/data/`. Large files (≥50 MB) must be committed via Git LFS.
+Pipeline outputs go to `public/data/`. Parquet files are committed as regular git objects (no Git LFS).
 
 ## Adding Counties
 
@@ -78,14 +78,6 @@ App.jsx             root state: year, kRing, activeView, points, flows, hexMeta
     FlowLayer.jsx   Flowmap.gl arc layer, arc hover tooltip
   ODMatrix.jsx      N×N OD table, colour-coded, hover tooltip
   PointList.jsx     sidebar: names, colours, county, reorder, delete, overlap warning
-```
-
-## Git LFS
-
-```bash
-git lfs install
-# .gitattributes already tracks *.parquet
-# Commit Parquet files normally — Git LFS handles the rest
 ```
 
 ## Deployment

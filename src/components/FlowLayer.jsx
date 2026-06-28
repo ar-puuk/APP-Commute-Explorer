@@ -68,6 +68,9 @@ export default function FlowLayer({
     };
   }, [map]);
 
+  /* ── Clear pinned tooltip on mode switch ── */
+  useEffect(() => { undockFnRef.current?.(); }, [appMode]);
+
   /* ── Rebuild FlowmapLayer whenever data changes ── */
   useEffect(() => {
     if (!overlayRef.current) return;

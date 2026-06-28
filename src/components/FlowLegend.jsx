@@ -11,8 +11,8 @@ export default function FlowLegend({ flows }) {
     <div
       style={{
         position: 'absolute',
-        bottom: 96,
-        right: 12,
+        top: 12,
+        left: 12,
         width: 260,
         padding: '10px 12px',
         borderRadius: 'var(--radius-lg)',

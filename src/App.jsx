@@ -89,7 +89,7 @@ export default function App() {
     recomputeAllClusters(k);
   };
 
-  const enterSelectMode   = () => setAppMode('select');
+  const enterSelectMode   = () => { setAppMode('select'); setActiveView('map'); };
   const enterOverviewMode = () => { setAppMode('overview'); clearPoints(); };
 
   /* ── Fatal DB error ── */

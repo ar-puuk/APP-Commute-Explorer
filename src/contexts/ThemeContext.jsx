@@ -14,11 +14,11 @@ function applyTheme(resolvedTheme) {
 
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(() => {
-    try { return localStorage.getItem('theme') || 'system'; } catch { return 'system'; }
+    try { return localStorage.getItem('theme') || 'dark'; } catch { return 'dark'; }
   });
 
   const [resolvedTheme, setResolvedTheme] = useState(() => {
-    const stored = (() => { try { return localStorage.getItem('theme') || 'system'; } catch { return 'system'; } })();
+    const stored = (() => { try { return localStorage.getItem('theme') || 'dark'; } catch { return 'dark'; } })();
     return getResolved(stored);
   });
 

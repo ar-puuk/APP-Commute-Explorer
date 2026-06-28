@@ -54,3 +54,12 @@ export function matrixColor(value, max) {
   const [r, g, b] = lerp(TEAL, t);
   return `rgb(${r},${g},${b})`;
 }
+
+// Dark-theme OD matrix fill — transparent → bright teal.
+// Works on both dark and light backgrounds (opacity-based).
+export function matrixColorDark(value, max) {
+  if (!value || max <= 0) return null;
+  const t = Math.sqrt(value / max); // sqrt for perceptual balance
+  const opacity = 0.12 + t * 0.78; // range: 0.12 → 0.90
+  return `rgba(34, 181, 168, ${opacity.toFixed(2)})`;
+}

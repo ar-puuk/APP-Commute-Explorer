@@ -5,6 +5,8 @@ import { WarningIcon } from './Icons.jsx';
 export default function AnalysisPanel({
   points, overlapPairs, totalCommuters, year,
   onDelete, onRename, onReorder, onMoveToIndex, isNameDuplicate,
+  matrixCells,
+  setPointColor,
 }) {
   const dragIdxRef    = useRef(null);
   const [dragOverIdx, setDragOverIdx] = useState(null);
@@ -20,6 +22,16 @@ export default function AnalysisPanel({
     dragIdxRef.current = null;
   };
   const handleDragEnd   = () => { dragIdxRef.current = null; setDragOverIdx(null); };
+
+  // Compute per-point outbound (row) and inbound (col) totals from matrixCells
+  const rowTotals = new Map();
+  const colTotals = new Map();
+  if (matrixCells) {
+    for (const [, cell] of matrixCells) {
+      rowTotals.set(cell.originPointId, (rowTotals.get(cell.originPointId) ?? 0) + cell.S000);
+      colTotals.set(cell.destPointId,   (colTotals.get(cell.destPointId)   ?? 0) + cell.S000);
+    }
+  }
 
   const getOverlapNames = (id) =>
     overlapPairs
@@ -73,8 +85,11 @@ export default function AnalysisPanel({
               onDelete={onDelete}
               onRename={onRename}
               onReorder={onReorder}
+              setPointColor={setPointColor}
               isNameDuplicate={isNameDuplicate}
               overlapNames={getOverlapNames(p.id)}
+              outbound={rowTotals.get(p.id) ?? 0}
+              inbound={colTotals.get(p.id) ?? 0}
               isDragOver={dragOverIdx === idx}
               onDragStart={() => handleDragStart(idx)}
               onDragOver={(e) => handleDragOver(e, idx)}

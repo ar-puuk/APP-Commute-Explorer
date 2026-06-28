@@ -72,6 +72,20 @@ export default function AppHeader({
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
             Commute Flow Explorer
           </span>
+          {/* WFRC agency badge */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '2px 7px',
+            background: 'var(--color-brand-50)',
+            border: '1px solid rgba(224, 123, 44, 0.3)',
+            borderRadius: 'var(--radius-sm)',
+            flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-brand-600)', letterSpacing: '0.06em' }}>
+              WFRC
+            </span>
+          </div>
         </div>
 
         {/* Vertical divider */}

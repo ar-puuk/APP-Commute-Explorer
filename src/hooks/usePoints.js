@@ -68,6 +68,10 @@ export function usePoints(kRing) {
     setPoints(prev => prev.map(p => p.id === id ? { ...p, name } : p));
   }, []);
 
+  const setPointColor = useCallback((id, color) => {
+    setPoints(prev => prev.map(p => p.id === id ? { ...p, color } : p));
+  }, []);
+
   const reorderPoint = useCallback((id, direction) => {
     setPoints(prev => {
       const idx = prev.findIndex(p => p.id === id);
@@ -113,6 +117,7 @@ export function usePoints(kRing) {
     addPointResolved,
     deletePoint,
     renamePoint,
+    setPointColor,
     reorderPoint,
     movePointToIndex,
     recomputeAllClusters,

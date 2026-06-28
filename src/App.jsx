@@ -25,7 +25,7 @@ export default function App() {
 
   const {
     points, pointClusters, allClaimedHexIds, overlapPairs,
-    addPointResolved, deletePoint, renamePoint, reorderPoint, movePointToIndex,
+    addPointResolved, deletePoint, renamePoint, setPointColor, reorderPoint, movePointToIndex,
     recomputeAllClusters, isNameDuplicate,
     clearPoints,
   } = usePoints(kRing);
@@ -137,18 +137,26 @@ export default function App() {
             onReorder={reorderPoint}
             onMoveToIndex={movePointToIndex}
             isNameDuplicate={isNameDuplicate}
+            matrixCells={matrixCells}
+            setPointColor={setPointColor}
           />
         )}
 
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {isSelect && activeView === 'matrix' && points.length >= 2 ? (
-            <ODMatrix
-              points={points}
-              matrixCells={matrixCells}
-              year={year}
-              totalCommuters={totalCommuters}
-            />
+          {isSelect && activeView === 'matrix' ? (
+            points.length >= 2 ? (
+              <ODMatrix
+                points={points}
+                matrixCells={matrixCells}
+                year={year}
+                totalCommuters={totalCommuters}
+              />
+            ) : (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: 14 }}>
+                Add at least 2 zones on the map to view the OD matrix.
+              </div>
+            )
           ) : (
             <MapView
               appMode={appMode}
@@ -163,13 +171,6 @@ export default function App() {
               overviewLocations={overviewLocations}
               overviewFlows={overviewFlows}
             />
-          )}
-
-          {/* Matrix empty state */}
-          {isSelect && activeView === 'matrix' && points.length < 2 && (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: 14 }}>
-              Add at least 2 zones on the map to view the OD matrix.
-            </div>
           )}
         </div>
       </div>

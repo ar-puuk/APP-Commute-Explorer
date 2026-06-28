@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { matrixColor } from '../utils/colors.js';
+import { matrixColor, matrixColorDark } from '../utils/colors.js';
 import { useMatrixTooltip } from './FlowTooltip.jsx';
 import { exportWide, exportLong } from '../utils/MatrixExport.js';
 import { ArrowLeftIcon, ArrowRightIcon } from './Icons.jsx';
+import { useTheme } from '../contexts/ThemeContext.jsx';
 
 /* ── Download dropdown ────────────────────────────────────────────────────── */
 function DownloadMenu({ points, matrixCells, year }) {
@@ -88,6 +89,8 @@ function DownloadMenu({ points, matrixCells, year }) {
 /* ── Main ODMatrix ────────────────────────────────────────────────────────── */
 export default function ODMatrix({ points, matrixCells, year, totalCommuters }) {
   const { show, move, hide, element: tooltipElement } = useMatrixTooltip();
+  const { resolvedTheme } = useTheme();
+  const getColor = resolvedTheme === 'dark' ? matrixColorDark : matrixColor;
 
   if (points.length < 2) return null;
 
@@ -311,7 +314,10 @@ export default function ODMatrix({ points, matrixCells, year, totalCommuters }) 
                         const val    = cell?.S000 ?? 0;
                         const bg     = isSelf
                           ? 'repeating-linear-gradient(45deg, var(--color-surface-raised), var(--color-surface-raised) 2px, var(--color-surface) 2px, var(--color-surface) 8px)'
-                          : (matrixColor(val, maxVal) ?? 'var(--color-surface)');
+                          : (getColor(val, maxVal) ?? 'var(--color-surface)');
+                        const cellTextColor = (!isSelf && val > maxVal * 0.55 && resolvedTheme === 'dark')
+                          ? '#071827'
+                          : 'var(--color-text-primary)';
 
                         return (
                           <td
@@ -320,14 +326,22 @@ export default function ODMatrix({ points, matrixCells, year, totalCommuters }) 
                             style={{
                               ...tdBase,
                               background: bg,
+                              color: cellTextColor,
                               textAlign: 'right',
                               cursor: val ? 'pointer' : 'default',
                               position: 'relative',
+                              verticalAlign: 'bottom',
+                              paddingBottom: 10,
                             }}
                             onMouseEnter={val ? (e) => show(e, cell, origin.name, dest.name, origin.color, dest.color) : undefined}
                             onMouseMove={val  ? (e) => move(e) : undefined}
                             onMouseLeave={val ? hide : undefined}
                           >
+                            {!isSelf && val > 0 && (
+                              <div style={{ position: 'absolute', bottom: 5, left: 8, right: 8, height: 3, background: 'rgba(60,130,200,0.15)', borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.round((val / maxVal) * 100)}%`, height: '100%', background: resolvedTheme === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(34,181,168,0.6)', borderRadius: 2 }} />
+                              </div>
+                            )}
                             {isSelf ? (
                               val ? (
                                 <span style={{ fontStyle: 'italic', color: 'var(--color-text-secondary)', fontSize: 12 }}>
@@ -337,7 +351,7 @@ export default function ODMatrix({ points, matrixCells, year, totalCommuters }) 
                                 <span style={{ color: 'var(--color-text-disabled)' }}>—</span>
                               )
                             ) : val ? (
-                              val.toLocaleString()
+                              <span style={{ fontFamily: "'DM Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>{val.toLocaleString()}</span>
                             ) : (
                               <span style={{ color: 'var(--color-text-disabled)' }}>—</span>
                             )}
@@ -347,7 +361,9 @@ export default function ODMatrix({ points, matrixCells, year, totalCommuters }) 
 
                       {/* Outbound total */}
                       <td style={{ ...tdBase, ...totalCellStyle, textAlign: 'right' }}>
-                        {(rowTotals.get(origin.id) ?? 0).toLocaleString()}
+                        <span style={{ fontFamily: "'DM Mono', monospace" }}>
+                          {(rowTotals.get(origin.id) ?? 0).toLocaleString()}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -368,7 +384,9 @@ export default function ODMatrix({ points, matrixCells, year, totalCommuters }) 
                   </td>
                   {points.map(dest => (
                     <td key={dest.id} style={{ ...tdBase, ...totalCellStyle, textAlign: 'right' }}>
-                      {(colTotals.get(dest.id) ?? 0).toLocaleString()}
+                      <span style={{ fontFamily: "'DM Mono', monospace" }}>
+                        {(colTotals.get(dest.id) ?? 0).toLocaleString()}
+                      </span>
                     </td>
                   ))}
                   <td style={{ ...tdBase, background: 'var(--color-surface-raised)' }} />

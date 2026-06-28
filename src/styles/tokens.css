@@ -1,11 +1,10 @@
-/* ─── Light theme (default) ──────────────────────────────────────────────── */
+/* ─── Brand — WFRC Orange ─────────────────────────────────────────────────── */
 :root {
-  /* Brand */
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-50:  #eff6ff;
+  --color-brand-600: #E07B2C;
+  --color-brand-700: #C96B1C;
+  --color-brand-50:  rgba(224, 123, 44, 0.12);
 
-  /* Surfaces */
+  /* Surfaces — used in light mode / overridden in dark */
   --color-surface:          #ffffff;
   --color-surface-subtle:   #f8fafc;
   --color-surface-raised:   #f1f5f9;
@@ -28,13 +27,12 @@
   --color-error:          #ef4444;
   --color-success:        #10b981;
 
+  /* Data accent (teal — complements GnBu flow arcs) */
+  --color-teal: #22B5A8;
+
   /* Spacing — 4-pt grid */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 20px; --space-6: 24px;
 
   /* Radii */
   --radius-sm:   4px;
@@ -53,46 +51,43 @@
   --header-height: 52px;
   --sidebar-width: 280px;
 
-  /* Frosted-glass overlay (overview card, legend) */
+  /* Glass overlay */
   --glass-bg: rgba(255, 255, 255, 0.88);
 }
 
 /* ─── Dark theme ─────────────────────────────────────────────────────────── */
 [data-theme="dark"] {
-  /* Surfaces — Slate scale */
-  --color-surface:          #0f172a;
-  --color-surface-subtle:   #1e293b;
-  --color-surface-raised:   #334155;
-  --color-surface-elevated: #1e293b;
+  /* Surfaces — deep navy scale */
+  --color-surface:          #0d2035;
+  --color-surface-subtle:   #071827;
+  --color-surface-raised:   #162c47;
+  --color-surface-elevated: #1a3452;
 
   /* Borders */
-  --color-border:        #334155;
-  --color-border-strong: #475569;
+  --color-border:        rgba(60, 130, 200, 0.15);
+  --color-border-strong: rgba(60, 130, 200, 0.28);
 
   /* Text */
-  --color-text-primary:   #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted:     #64748b;
-  --color-text-disabled:  #334155;
+  --color-text-primary:   #D4E3F5;
+  --color-text-secondary: rgba(140, 180, 235, 0.8);
+  --color-text-muted:     rgba(80, 130, 190, 0.6);
+  --color-text-disabled:  rgba(60, 100, 160, 0.3);
 
-  /* Status */
-  --color-warning-bg:     #1c1a09;
-  --color-warning-border: #78350f;
+  /* Status — dark variants */
+  --color-warning-bg:     rgba(245, 158, 11, 0.08);
+  --color-warning-border: rgba(245, 158, 11, 0.2);
 
-  /* Elevation — heavier on dark background */
+  /* Elevation */
   --shadow-sm:      0 1px 2px rgba(0,0,0,.4),  0 1px 3px rgba(0,0,0,.3);
   --shadow-md:      0 4px 6px rgba(0,0,0,.35), 0 2px 4px rgba(0,0,0,.25);
   --shadow-tooltip: 0 8px 24px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
 
-  --glass-bg: rgba(15, 23, 42, 0.88);
+  /* Glass overlay */
+  --glass-bg: rgba(7, 24, 39, 0.9);
 }
 
 /* ─── Global resets ──────────────────────────────────────────────────────── */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #root {
   height: 100%;
@@ -101,29 +96,24 @@ html, body, #root {
 }
 
 body {
-  /* Open Sans for body/labels: superior legibility at 11-13px */
-  font-family: 'Open Sans Variable', 'Open Sans', system-ui, sans-serif;
+  font-family: 'DM Sans Variable', 'DM Sans', 'Open Sans Variable', system-ui, sans-serif;
   font-size: 14px;
   color: var(--color-text-primary);
-  background: var(--color-surface);
+  background: var(--color-surface-subtle);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Inter for headings and display text: sharp, geometric */
-h1, h2, h3, h4, h5, h6,
-.font-heading {
-  font-family: 'Inter Variable', Inter, system-ui, sans-serif;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+/* DM Mono for headings that use tabular numbers */
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
 }
 
-/* Tabular numbers everywhere numbers are displayed in columns */
-.tabular-nums {
+.tabular-nums, .font-mono {
+  font-family: 'DM Mono', monospace;
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum';
 }
 
-/* Hide native spin buttons on number inputs globally */
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -132,11 +122,11 @@ input[type='number']::-webkit-inner-spin-button {
 
 /* ─── Shared utility classes ─────────────────────────────────────────────── */
 .section-label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 .divider {
@@ -150,7 +140,7 @@ input[type='number']::-webkit-inner-spin-button {
   align-items: center;
   gap: var(--space-1);
   padding: 6px 14px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   border-radius: var(--radius-md);
   border: none;
@@ -158,17 +148,18 @@ input[type='number']::-webkit-inner-spin-button {
   background: var(--color-brand-600);
   color: #fff;
   transition: background 0.12s ease;
+  font-family: inherit;
 }
-.btn-primary:hover  { background: var(--color-brand-700); }
+.btn-primary:hover       { background: var(--color-brand-700); }
 .btn-primary:focus-visible { outline: 2px solid var(--color-brand-600); outline-offset: 2px; }
-.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary:disabled    { opacity: 0.45; cursor: not-allowed; }
 
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: 6px 14px;
-  font-size: 14px;
+  padding: 5px 12px;
+  font-size: 13px;
   font-weight: 500;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
@@ -176,28 +167,29 @@ input[type='number']::-webkit-inner-spin-button {
   background: var(--color-surface);
   color: var(--color-text-secondary);
   transition: background 0.12s ease, color 0.12s ease;
+  font-family: inherit;
 }
-.btn-secondary:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.btn-secondary:hover       { background: var(--color-surface-raised); color: var(--color-text-primary); }
 .btn-secondary:focus-visible { outline: 2px solid var(--color-brand-600); outline-offset: 2px; }
-.btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-secondary:disabled    { opacity: 0.45; cursor: not-allowed; }
 
 .btn-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
   background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 15px;
+  color: var(--color-text-muted);
+  font-size: 14px;
   transition: background 0.12s ease, color 0.12s ease;
 }
-.btn-icon:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.btn-icon:hover        { background: var(--color-surface-raised); color: var(--color-text-primary); }
 .btn-icon:focus-visible { outline: 2px solid var(--color-brand-600); outline-offset: 2px; }
-.btn-icon:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-icon:disabled     { opacity: 0.4; cursor: not-allowed; }
 
 .styled-select {
   appearance: none;
@@ -210,6 +202,7 @@ input[type='number']::-webkit-inner-spin-button {
   color: var(--color-text-primary);
   cursor: pointer;
   transition: border-color 0.12s ease;
+  font-family: inherit;
 }
 .styled-select:hover  { border-color: var(--color-border-strong); }
-.styled-select:focus  { outline: none; border: 2px solid var(--color-brand-600); padding: 3px 23px 3px 7px; }
+.styled-select:focus  { outline: none; border: 2px solid var(--color-brand-600); }

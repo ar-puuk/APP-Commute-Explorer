@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { PencilIcon, TrashIcon, WarningIcon } from './Icons.jsx';
+import { PencilIcon, TrashIcon, WarningIcon, PlusIcon, MinusIcon } from './Icons.jsx';
 
 const MAX_NAME_LEN = 40;
 
@@ -25,12 +25,16 @@ const GripIcon = () => (
 
 export default function PointCard({
   point, index, total,
+  globalKRing,
   onDelete, onRename, onReorder, setPointColor,
+  setPointKRing, resetPointKRing,
   isNameDuplicate, overlapNames,
   outbound, inbound,
   isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
 }) {
+  const effectiveK  = point.kRingOverride ?? globalKRing;
+  const isOverride  = point.kRingOverride !== null;
   const [editing,     setEditing]     = useState(false);
   const [editValue,   setEditValue]   = useState('');
   const [editError,   setEditError]   = useState('');
@@ -233,6 +237,68 @@ export default function PointCard({
           color: 'var(--color-text-muted)',
         }}>
           {point.countyName}
+        </div>
+      )}
+
+      {/* Per-point ring size control */}
+      {!editing && (
+        <div style={{ marginTop: 4, marginLeft: 38, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ fontSize: 11, color: 'var(--color-text-muted)', userSelect: 'none' }}>Ring</span>
+
+          <button
+            aria-label="Decrease ring size"
+            onClick={() => setPointKRing(point.id, Math.max(0, effectiveK - 1))}
+            disabled={effectiveK === 0}
+            style={{
+              width: 18, height: 18, padding: 0, border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-sm)', background: 'var(--color-surface)',
+              color: effectiveK === 0 ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)',
+              cursor: effectiveK === 0 ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}
+          >
+            <MinusIcon size={10} />
+          </button>
+
+          <span style={{
+            fontSize: 12, fontWeight: 700, minWidth: 14, textAlign: 'center',
+            fontVariantNumeric: 'tabular-nums',
+            color: isOverride ? 'var(--color-brand-600)' : 'var(--color-text-primary)',
+          }}>
+            {effectiveK}
+          </span>
+
+          <button
+            aria-label="Increase ring size"
+            onClick={() => setPointKRing(point.id, effectiveK + 1)}
+            style={{
+              width: 18, height: 18, padding: 0, border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-sm)', background: 'var(--color-surface)',
+              color: 'var(--color-text-secondary)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}
+          >
+            <PlusIcon size={10} />
+          </button>
+
+          {isOverride && (
+            <button
+              aria-label="Reset to global ring size"
+              title={`Reset to global (${globalKRing})`}
+              onClick={() => resetPointKRing(point.id)}
+              style={{
+                marginLeft: 2, padding: '0 5px', height: 18,
+                border: '1px solid var(--color-brand-600)',
+                borderRadius: 'var(--radius-sm)',
+                background: 'transparent',
+                color: 'var(--color-brand-600)',
+                cursor: 'pointer', fontSize: 10, fontWeight: 700,
+                display: 'flex', alignItems: 'center',
+              }}
+            >
+              reset
+            </button>
+          )}
         </div>
       )}
 

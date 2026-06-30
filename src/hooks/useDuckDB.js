@@ -29,6 +29,11 @@ function dataUrl(year) {
   return `${base}data/od_${year}.parquet`;
 }
 
+export async function query(sql) {
+  if (!conn) throw new Error('DuckDB not initialised — call initDB() first');
+  return conn.query(sql);
+}
+
 export async function loadYear(year) {
   if (!conn) throw new Error('DuckDB not initialised — call initDB() first');
   if (year === currentYear) return;

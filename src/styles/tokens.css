@@ -1,5 +1,9 @@
 /* ─── Brand — WFRC Orange ─────────────────────────────────────────────────── */
 :root {
+  color-scheme: light;
+  --scrollbar-track: var(--color-surface-raised);
+  --scrollbar-thumb: var(--color-border-strong);
+  --scrollbar-thumb-hover: var(--color-text-muted);
   --color-brand-600: #E07B2C;
   --color-brand-700: #C96B1C;
   --color-brand-50:  rgba(224, 123, 44, 0.12);
@@ -57,6 +61,10 @@
 
 /* ─── Dark theme ─────────────────────────────────────────────────────────── */
 [data-theme="dark"] {
+  color-scheme: dark;
+  --scrollbar-track: var(--color-surface-raised);
+  --scrollbar-thumb: rgba(60, 130, 200, 0.35);
+  --scrollbar-thumb-hover: rgba(60, 130, 200, 0.6);
   /* Surfaces — deep navy scale */
   --color-surface:          #0d2035;
   --color-surface-subtle:   #071827;
@@ -206,3 +214,22 @@ input[type='number']::-webkit-inner-spin-button {
 }
 .styled-select:hover  { border-color: var(--color-border-strong); }
 .styled-select:focus  { outline: none; border: 2px solid var(--color-brand-600); }
+
+/* ─── Scrollbars ─────────────────────────────────────────────────────────── */
+/* 10px track = easy grab target; transparent track + border trick = floating
+   pill thumb with visual inset, naturally distinct from the resize handle. */
+::-webkit-scrollbar             { width: 10px; height: 10px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 10px;
+  border: 3px solid transparent;   /* insets the visible thumb within the track */
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+/* Firefox */
+* { scrollbar-color: var(--scrollbar-thumb) transparent; scrollbar-width: thin; }

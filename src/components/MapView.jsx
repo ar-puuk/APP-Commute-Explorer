@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { buildBasemapStyle, addHillshadeToMap } from '../utils/agrcStyle.js';
 import { latlngToCell, getCluster } from '../utils/h3Utils.js';
-import { getHexMeta } from '../utils/countyConfig.js';
+import { loadHexMeta, lookupCountyName } from '../utils/countyConfig.js';
 import { useTheme } from '../contexts/ThemeContext.jsx';
 import HexLayer   from './HexLayer.jsx';
 import FlowLayer  from './FlowLayer.jsx';
@@ -144,16 +144,17 @@ export default function MapView({
         );
       });
 
-      m.on('click', (e) => {
+      m.on('click', async (e) => {
         // FlowLayer sets this flag when deck.gl consumes the click (arc/node tooltip dock).
         // Both fire on the same pointer event; checking the flag prevents a ghost point.
         if (deckClickedRef.current) { deckClickedRef.current = false; return; }
         if (modeRef.current !== 'select') return;
         const { lng, lat } = e.lngLat;
         const rootH3     = latlngToCell(lat, lng);
-        const meta       = getHexMeta(rootH3);
         const clusterIds = getCluster(rootH3, kRingRef.current);
-        const countyName = meta?.county_name ?? 'Unknown';
+        await loadHexMeta().catch(() => null);
+        const rawCounty  = lookupCountyName(rootH3);
+        const countyName = rawCounty ? `${rawCounty} County` : 'Unknown';
         onAddPoint({ lat, lng, rootH3, clusterIds, countyName });
       });
 

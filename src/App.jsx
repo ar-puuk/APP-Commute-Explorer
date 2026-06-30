@@ -29,6 +29,7 @@ export default function App() {
   const {
     points, pointClusters, allClaimedHexIds, overlapPairs,
     addPointResolved, deletePoint, renamePoint, setPointColor, reorderPoint, movePointToIndex,
+    setPointKRing, resetPointKRing,
     recomputeAllClusters, isNameDuplicate,
     clearPoints,
   } = usePoints(kRing);
@@ -48,7 +49,7 @@ export default function App() {
   useEffect(() => {
     loadHexMeta()
       .then(() => setMetaLoaded(true))
-      .catch(() => setMetaLoaded(true));
+      .catch(e => { console.error('[loadHexMeta]', e); setMetaLoaded(true); });
   }, []);
 
   useEffect(() => {
@@ -135,6 +136,7 @@ export default function App() {
             overlapPairs={overlapPairs}
             totalCommuters={totalCommuters}
             year={year}
+            kRing={kRing}
             onDelete={deletePoint}
             onRename={renamePoint}
             onReorder={reorderPoint}
@@ -142,6 +144,8 @@ export default function App() {
             isNameDuplicate={isNameDuplicate}
             matrixCells={matrixCells}
             setPointColor={setPointColor}
+            setPointKRing={setPointKRing}
+            resetPointKRing={resetPointKRing}
           />
         )}
 

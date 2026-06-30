@@ -17,9 +17,12 @@ function readSavedWidth() {
 
 export default function AnalysisPanel({
   points, overlapPairs, totalCommuters, year,
+  kRing,
   onDelete, onRename, onReorder, onMoveToIndex, isNameDuplicate,
   matrixCells,
   setPointColor,
+  setPointKRing,
+  resetPointKRing,
 }) {
   /* ── Card drag-to-reorder ─────────────────────────────────────────────── */
   const dragIdxRef    = useRef(null);
@@ -139,10 +142,13 @@ export default function AnalysisPanel({
                     point={p}
                     index={idx}
                     total={points.length}
+                    globalKRing={kRing}
                     onDelete={onDelete}
                     onRename={onRename}
                     onReorder={onReorder}
                     setPointColor={setPointColor}
+                    setPointKRing={setPointKRing}
+                    resetPointKRing={resetPointKRing}
                     isNameDuplicate={isNameDuplicate}
                     overlapNames={getOverlapNames(p.id)}
                     outbound={rowTotals.get(p.id) ?? 0}

@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getCluster } from '../utils/h3Utils.js';
 import { pointColor } from '../utils/colors.js';
-import { getHexMeta } from '../utils/countyConfig.js';
 
 export function usePoints(kRing) {
   const [points, setPoints] = useState([]);
@@ -55,6 +54,7 @@ export function usePoints(kRing) {
           rootH3,
           clusterIds: new Set(clusterIds),
           countyName: countyName ?? 'Unknown county',
+          kRingOverride: null,   // null = follow global kRing
         },
       ];
     });
@@ -98,12 +98,31 @@ export function usePoints(kRing) {
 
   const recomputeAllClusters = useCallback((newK) => {
     setPoints(prev =>
-      prev.map(p => ({
-        ...p,
-        clusterIds: new Set(getCluster(p.rootH3, newK)),
-      }))
+      prev.map(p =>
+        // leave customised points untouched
+        p.kRingOverride !== null ? p : {
+          ...p,
+          clusterIds: new Set(getCluster(p.rootH3, newK)),
+        }
+      )
     );
   }, []);
+
+  const setPointKRing = useCallback((id, k) => {
+    setPoints(prev => prev.map(p =>
+      p.id === id
+        ? { ...p, kRingOverride: k, clusterIds: new Set(getCluster(p.rootH3, k)) }
+        : p
+    ));
+  }, []);
+
+  const resetPointKRing = useCallback((id) => {
+    setPoints(prev => prev.map(p =>
+      p.id === id
+        ? { ...p, kRingOverride: null, clusterIds: new Set(getCluster(p.rootH3, kRing)) }
+        : p
+    ));
+  }, [kRing]);
 
   const isNameDuplicate = useCallback((name, excludeId) => {
     return points.some(p => p.id !== excludeId && p.name === name);
@@ -118,6 +137,8 @@ export function usePoints(kRing) {
     deletePoint,
     renamePoint,
     setPointColor,
+    setPointKRing,
+    resetPointKRing,
     reorderPoint,
     movePointToIndex,
     recomputeAllClusters,

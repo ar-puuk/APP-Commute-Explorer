@@ -185,10 +185,14 @@ export default function MapView({
       });
     }
 
+    const ro = new ResizeObserver(() => { if (mapRef.current) mapRef.current.resize(); });
+    ro.observe(containerRef.current);
+
     initMap();
     return () => {
       cancelled = true;
       clearTimeout(idleWatchdog);
+      ro.disconnect();
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

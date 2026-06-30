@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { PencilIcon, TrashIcon, WarningIcon } from './Icons.jsx';
 
+const MAX_NAME_LEN = 40;
+
 const UpIcon = () => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
     <path d="M6 9V3M3 6l3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -33,7 +35,20 @@ export default function PointCard({
   const [editValue,   setEditValue]   = useState('');
   const [editError,   setEditError]   = useState('');
   const [pickerOpen,  setPickerOpen]  = useState(false);
+  const [pickerPos,   setPickerPos]   = useState({ top: 0, left: 0 });
   const swatchRef = useRef(null);
+
+  const openPicker = () => {
+    if (swatchRef.current) {
+      const r = swatchRef.current.getBoundingClientRect();
+      const pickerH = 120;
+      const top = (r.bottom + 6 + pickerH > window.innerHeight)
+        ? r.top - pickerH - 6
+        : r.bottom + 6;
+      setPickerPos({ top, left: r.left });
+    }
+    setPickerOpen(true);
+  };
 
   const startEdit = () => {
     setEditValue(point.name);
@@ -102,13 +117,13 @@ export default function PointCard({
         {/* Color swatch — clickable to open picker */}
         <div ref={swatchRef} style={{ position: 'relative', flexShrink: 0 }}>
           <span
-            onClick={() => setPickerOpen(o => !o)}
+            onClick={() => pickerOpen ? setPickerOpen(false) : openPicker()}
             title="Change zone color"
             style={{ display: 'inline-block', width: 15, height: 15, borderRadius: 'var(--radius-sm)', background: point.color, border: '1.5px solid rgba(255,255,255,0.15)', cursor: 'pointer', flexShrink: 0 }}
           />
-          {/* Color picker popover */}
+          {/* Color picker popover — fixed-positioned to escape overflow clipping */}
           {pickerOpen && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 100, background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '10px 12px', boxShadow: 'var(--shadow-md)', width: 148 }}>
+            <div style={{ position: 'fixed', top: pickerPos.top, left: pickerPos.left, zIndex: 1000, background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '10px 12px', boxShadow: 'var(--shadow-md)', width: 168 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Zone Color</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
                 {['#4e79a7','#f28e2b','#76b7b2','#59a14f','#edc948','#b07aa1','#ff9da7','#9c755f','#e15759','#499894'].map(c => (
@@ -135,6 +150,7 @@ export default function PointCard({
           <input
             autoFocus
             value={editValue}
+            maxLength={MAX_NAME_LEN}
             onChange={e => { setEditValue(e.target.value); setEditError(''); }}
             onKeyDown={e => {
               if (e.key === 'Enter')  commitEdit();
@@ -142,6 +158,7 @@ export default function PointCard({
             }}
             style={{
               flex: 1,
+              minWidth: 0,
               fontSize: 14,
               fontWeight: 600,
               padding: '2px 6px',
@@ -256,15 +273,19 @@ export default function PointCard({
         </div>
       )}
 
-      {/* Edit error */}
-      {editing && editError && (
+      {/* Edit error / character counter */}
+      {editing && (
         <div style={{
           marginTop: 3,
           marginLeft: 38,
           fontSize: 12,
-          color: 'var(--color-error)',
+          color: editError
+            ? 'var(--color-error)'
+            : editValue.length >= MAX_NAME_LEN - 5
+              ? 'var(--color-warning)'
+              : 'var(--color-text-muted)',
         }}>
-          {editError}
+          {editError || `${editValue.length} / ${MAX_NAME_LEN}`}
         </div>
       )}
 

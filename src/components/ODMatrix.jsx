@@ -105,6 +105,16 @@ export default function ODMatrix({ points, matrixCells, year, totalCommuters }) 
 
   const rotateHeaders = points.length >= 4;
 
+  // Compute header height so rotated label text doesn't clip at the top.
+  // At -45° the text projects upward by ≈ W × sin(45°). We estimate W from
+  // the longest name (7.5 px/char + 24 px for the coloured dot, gap, marginLeft).
+  const maxNameLen = rotateHeaders && points.length > 0
+    ? Math.max(...points.map(p => p.name.length))
+    : 0;
+  const rotatedHeaderHeight = rotateHeaders
+    ? Math.max(80, Math.ceil((maxNameLen * 7.5 + 24) * 0.75) + 12)
+    : 80;
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--color-surface)' }}>
 
@@ -172,6 +182,7 @@ export default function ODMatrix({ points, matrixCells, year, totalCommuters }) 
               color: 'var(--color-text-secondary)',
               width: 20,
               flexShrink: 0,
+              overflow: 'hidden',
               paddingBottom: 40, /* offset past the totals row */
             }}
           >
@@ -227,7 +238,7 @@ export default function ODMatrix({ points, matrixCells, year, totalCommuters }) 
                         minWidth: 90,
                         maxWidth: 130,
                         ...(rotateHeaders ? {
-                          height: 80,
+                          height: rotatedHeaderHeight,
                           verticalAlign: 'bottom',
                           paddingBottom: 8,
                         } : {}),
